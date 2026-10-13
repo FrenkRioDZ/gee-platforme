@@ -18,8 +18,11 @@ const TRAILING_COLUMNS = [
   { header: 'Statut', key: '__status', width: 14 },
   { header: 'Semaine', key: '__week', width: 12 },
   { header: 'Soumis le', key: '__submittedAt', width: 16 },
+  { header: 'Envoyé à GEE le', key: '__sentToGeeAt', width: 16 },
   { header: 'En retard', key: '__isLate', width: 10 },
 ];
+
+const SENT_TO_GEE_STATUSES = ['bureau_approved', 'accepted', 'rejected'];
 
 const STATUS_LABELS = {
   draft: 'Brouillon',
@@ -114,6 +117,11 @@ const exportWeeklyReports = async (reports, weekLabel) => {
       __submittedAt: report.submittedAt
         ? new Date(report.submittedAt).toLocaleDateString('fr-DZ')
         : 'Non soumis',
+      // bureauApprovedAt is also stamped on a bureau rejection, so only trust it
+      // once the report actually reached GEE
+      __sentToGeeAt: SENT_TO_GEE_STATUSES.includes(report.status) && report.bureauApprovedAt
+        ? new Date(report.bureauApprovedAt).toLocaleDateString('fr-DZ')
+        : 'Non envoyé',
       __isLate: report.isLate ? 'Oui' : 'Non',
     };
 
