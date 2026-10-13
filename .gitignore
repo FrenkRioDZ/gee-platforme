@@ -20,3 +20,6 @@ excel canvas/
 # Tooling output
 graphify-out/
 *.log
+
+# Local maintenance / seed scripts
+backend/scripts/
