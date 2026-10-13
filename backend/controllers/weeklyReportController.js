@@ -790,13 +790,13 @@ const exportReport = async (req, res) => {
 // ─── CONSOLIDATED EXCEL EXPORT ────────────────────────────────
 const exportConsolidated = async (req, res) => {
   try {
-    const { exportWeeklyReports } = require('../utils/excelExport');
+    const { exportWeeklyReports, addMissingReports } = require('../utils/excelExport');
     const { getWeekDeadline } = require('../utils/scheduler');
     const weekEnd = req.query.weekEnd ? new Date(req.query.weekEnd) : getWeekDeadline();
     const dayStart = new Date(weekEnd); dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(weekEnd); dayEnd.setHours(23, 59, 59, 999);
 
-    const reports = await WeeklyReport.find({
+    const found = await WeeklyReport.find({
       weekEnd: { $gte: dayStart, $lte: dayEnd }
     })
       .populate('project', 'name type siteLocation siteLabel entrepriseRealisation dateODS delaisContractuel montantMarche AMO')
@@ -805,6 +805,8 @@ const exportConsolidated = async (req, res) => {
       .populate('bureauApprovedBy', 'firstName lastName')
       .populate('canvasVersion');
 
+    // Projects with no report this week still get a "Non soumis" row
+    const reports = await addMissingReports(found, dayEnd);
     if (!reports.length) {
       return res.status(404).json({ message: 'Aucun rapport trouvé pour cette période' });
     }

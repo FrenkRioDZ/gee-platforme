@@ -4,7 +4,7 @@ const Bureau = require('../models/Bureau');
 const Project = require('../models/Project');
 const User = require('../models/User');
 const { getWeekLabel, getWeekDeadline } = require('../utils/scheduler');
-const { exportWeeklyReports } = require('../utils/excelExport');
+const { exportWeeklyReports, addMissingReports } = require('../utils/excelExport');
 
 
 const getReportValue = (report, key) =>
@@ -167,11 +167,13 @@ const exportWeekly = async (req, res) => {
     if (req.user.role.startsWith('bureau_')) {
       filter.bureau = req.user.bureau._id;
     }
-    const reports = await WeeklyReport.find(filter)
+    const found = await WeeklyReport.find(filter)
       .populate('project', 'name type siteLocation entrepriseRealisation dateODS delaisContractuel')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .populate('canvasVersion');
+    // Projects with no report this week still get a "Non soumis" row
+    const reports = await addMissingReports(found, deadline, filter.bureau);
 
     const label = deadline.toISOString().split('T')[0];
     const workbook = await exportWeeklyReports(reports, label);

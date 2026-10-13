@@ -1,4 +1,6 @@
 const ExcelJS = require('exceljs');
+const Project = require('../models/Project');
+const { getWeekLabel } = require('./scheduler');
 
 // Fixed columns that always appear, before any canvas-driven ones.
 // These come from the project/report metadata, not the values map.
@@ -17,12 +19,18 @@ const FIXED_COLUMNS = [
 const TRAILING_COLUMNS = [
   { header: 'Statut', key: '__status', width: 14 },
   { header: 'Semaine', key: '__week', width: 12 },
-  { header: 'Soumis le', key: '__submittedAt', width: 16 },
-  { header: 'Envoyé à GEE le', key: '__sentToGeeAt', width: 16 },
+  { header: 'Soumis le', key: '__submittedAt', width: 18 },
+  { header: 'Envoyé à GEE le', key: '__sentToGeeAt', width: 18 },
   { header: 'En retard', key: '__isLate', width: 10 },
 ];
 
-const SENT_TO_GEE_STATUSES = ['bureau_approved', 'accepted', 'rejected'];
+// "07/10/2026 14:32" in Algeria time, whatever the server's timezone
+const fmtDateTime = (d) => new Date(d).toLocaleString('fr-DZ', {
+  timeZone: 'Africa/Algiers', day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+const SENT_TO_GEE_STATUSES =['bureau_approved', 'accepted', 'rejected'];
 
 const STATUS_LABELS = {
   draft: 'Brouillon',
@@ -31,6 +39,35 @@ const STATUS_LABELS = {
   bureau_rejected: 'Renvoyé bureau',
   accepted: 'Accepté',
   rejected: 'Rejeté',
+  missing: 'Non soumis',
+};
+
+// Every active weekly-report project must appear in the consolidated export,
+// even when no report exists for that week — add a placeholder row for each one.
+// bureauId (optional) limits the list to projects that bureau owns or joins.
+const addMissingReports = async (reports, weekEnd, bureauId) => {
+  const filter = { hasWeeklyReport: true, isActive: true, dateODS: { $lte: weekEnd } };
+  if (bureauId) filter.$or = [{ bureau: bureauId }, { participantBureaus: bureauId }];
+
+  const projects = await Project.find(filter)
+    .select('name type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche AMO bureau')
+    .populate('bureau', 'name');
+
+  const reported = new Set(reports.map(r => String(r.project?._id || r.project)));
+  const missing = projects
+    .filter(p => !reported.has(String(p._id)))
+    .map(p => ({
+      project: p,
+      bureau: p.bureau,
+      status: 'missing',
+      weekLabel: getWeekLabel(p.dateODS, weekEnd),
+      values: new Map(),
+      isLate: true,
+    }));
+
+  return [...reports, ...missing].sort((a, b) =>
+    (a.bureau?.name || '').localeCompare(b.bureau?.name || '') ||
+    (a.project?.name || '').localeCompare(b.project?.name || ''));
 };
 
 // Build the canvas-driven column set as the UNION of every field across all
@@ -115,12 +152,12 @@ const exportWeeklyReports = async (reports, weekLabel) => {
       __status: STATUS_LABELS[report.status] || report.status,
       __week: report.weekLabel || '—',
       __submittedAt: report.submittedAt
-        ? new Date(report.submittedAt).toLocaleDateString('fr-DZ')
+        ? fmtDateTime(report.submittedAt)
         : 'Non soumis',
       // bureauApprovedAt is also stamped on a bureau rejection, so only trust it
       // once the report actually reached GEE
       __sentToGeeAt: SENT_TO_GEE_STATUSES.includes(report.status) && report.bureauApprovedAt
-        ? new Date(report.bureauApprovedAt).toLocaleDateString('fr-DZ')
+        ? fmtDateTime(report.bureauApprovedAt)
         : 'Non envoyé',
       __isLate: report.isLate ? 'Oui' : 'Non',
     };
@@ -190,10 +227,11 @@ const exportWeeklyReports = async (reports, weekLabel) => {
   const pending = reports.filter(r =>
     ['draft', 'submitted', 'bureau_approved', 'bureau_rejected'].includes(r.status)
   ).length;
+  const missing = reports.filter(r => r.status === 'missing').length;
 
   worksheet.mergeCells(`A${summaryRowIdx}:${lastCol}${summaryRowIdx}`);
   summaryRow.getCell(1).value =
-    `Total rapports: ${reports.length}  |  Acceptés: ${accepted}  |  En attente: ${pending}  |  En retard: ${late}`;
+    `Total projets: ${reports.length}  |  Acceptés: ${accepted}  |  En attente: ${pending}  |  Non soumis: ${missing}  |  En retard: ${late}`;
   summaryRow.getCell(1).font = { bold: true };
   summaryRow.getCell(1).alignment = { horizontal: 'center' };
 
@@ -209,4 +247,4 @@ const exportWeeklyReports = async (reports, weekLabel) => {
   return workbook;
 };
 
-module.exports = { exportWeeklyReports };
+module.exports = { exportWeeklyReports, addMissingReports };
