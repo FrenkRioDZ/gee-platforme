@@ -1,0 +1,108 @@
+{
+  "app_name": "GEE Plateforme",
+  "login": {
+    "title": "Connexion",
+    "subtitle": "Groupe Études & Engineering",
+    "email": "Adresse email professionnelle",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "loading": "Connexion en cours...",
+    "error_invalid": "Email ou mot de passe incorrect",
+    "error_inactive": "Compte désactivé — contactez l'administrateur"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "reports": "Rapports",
+    "projects": "Projets",
+    "users": "Utilisateurs",
+    "bureaus": "Filiales",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "week": "Semaine",
+    "total_reports": "Total rapports",
+    "accepted": "Acceptés",
+    "pending": "En attente",
+    "late": "En retard",
+    "rejected": "Rejetés",
+    "submission_rate": "Taux de soumission",
+    "bureau_status": "Statut des Filiales",
+    "export_excel": "Exporter Excel"
+  },
+  "reports": {
+    "title": "Rapports hebdomadaires",
+    "new": "Nouveau rapport",
+    "submit": "Soumettre",
+    "save_draft": "Enregistrer brouillon",
+    "accept": "Accepter",
+    "reject": "Rejeter",
+    "observation": "Observation",
+    "forward_to_gee": "Transmettre au GEE",
+    "status": {
+      "draft": "Brouillon",
+      "submitted": "Soumis",
+      "bureau_reviewed": "Transmis GEE",
+      "accepted": "Accepté",
+      "rejected": "Rejeté",
+      "non_soumis": "Non soumis"
+    },
+    "fields": {
+      "project": "Projet",
+      "site": "Site du projet",
+      "entreprise": "Entreprise de réalisation",
+      "date_ods": "Date ODS",
+      "delais": "Délais contractuel (mois)",
+      "taux_avancement_1": "Taux d'avancement (%) — date 1",
+      "taux_avancement_2": "Taux d'avancement (%) — date 2",
+      "taux_consommation_delais": "Taux consommation délais (%)",
+      "montant_marche": "Montant du marché (DA/TTC)",
+      "taux_financier": "Taux consommation financière (%)",
+      "facturation_entreprise": "Facturation entreprise (TTC)",
+      "encaissement_entreprise": "Encaissement entreprise (TTC)",
+      "facturation_bet": "Facturation BET (TTC)",
+      "encaissement_bet": "Encaissement BET (TTC)"
+    }
+  },
+  "projects": {
+    "title": "Projets",
+    "new": "Nouveau projet",
+    "types": {
+      "Industriel": "Projet Industriel",
+      "Batiment": "Bâtiments",
+      "Equipement_Public": "Équipement Public"
+    }
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "new": "Nouvel utilisateur",
+    "activate": "Activer",
+    "deactivate": "Désactiver",
+    "reset_password": "Réinitialiser mot de passe"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "confirm": "Confirmer",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "no_data": "Aucune donnée",
+    "error": "Une erreur est survenue",
+    "success": "Opération réussie",
+    "late": "En retard",
+    "active": "Actif",
+    "inactive": "Inactif"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "mark_all_read": "Tout marquer comme lu",
+    "no_notifications": "Aucune notification",
+    "report_submitted": "Rapport soumis",
+    "report_accepted": "Rapport accepté",
+    "report_rejected": "Rapport rejeté",
+    "report_reminder": "Rappel rapport"
+  }
+}

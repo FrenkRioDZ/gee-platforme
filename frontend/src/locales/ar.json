@@ -1,0 +1,108 @@
+{
+  "app_name": "منصة GEE",
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "مجموعة الدراسات والهندسة",
+    "email": "البريد الإلكتروني المهني",
+    "password": "كلمة المرور",
+    "submit": "تسجيل الدخول",
+    "loading": "جارٍ تسجيل الدخول...",
+    "error_invalid": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "error_inactive": "الحساب معطل — تواصل مع المسؤول"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "reports": "التقارير",
+    "projects": "المشاريع",
+    "users": "المستخدمون",
+    "bureaus": "المكاتب",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "week": "الأسبوع",
+    "total_reports": "مجموع التقارير",
+    "accepted": "مقبولة",
+    "pending": "قيد الانتظار",
+    "late": "متأخرة",
+    "rejected": "مرفوضة",
+    "submission_rate": "نسبة التقديم",
+    "bureau_status": "حالة المكاتب",
+    "export_excel": "تصدير Excel"
+  },
+  "reports": {
+    "title": "التقارير الأسبوعية",
+    "new": "تقرير جديد",
+    "submit": "إرسال",
+    "save_draft": "حفظ كمسودة",
+    "accept": "قبول",
+    "reject": "رفض",
+    "observation": "ملاحظة",
+    "forward_to_gee": "إرسال إلى GEE",
+    "status": {
+      "draft": "مسودة",
+      "submitted": "مُرسل",
+      "bureau_reviewed": "أُحيل إلى GEE",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "non_soumis": "لم يُرسل"
+    },
+    "fields": {
+      "project": "المشروع",
+      "site": "موقع المشروع",
+      "entreprise": "مؤسسة الإنجاز",
+      "date_ods": "تاريخ ODS",
+      "delais": "المدة التعاقدية (أشهر)",
+      "taux_avancement_1": "نسبة التقدم (%) — التاريخ 1",
+      "taux_avancement_2": "نسبة التقدم (%) — التاريخ 2",
+      "taux_consommation_delais": "نسبة استهلاك الآجال (%)",
+      "montant_marche": "مبلغ الصفقة (دج)",
+      "taux_financier": "نسبة الاستهلاك المالي (%)",
+      "facturation_entreprise": "فوترة المؤسسة (TTC)",
+      "encaissement_entreprise": "تحصيل المؤسسة (TTC)",
+      "facturation_bet": "فوترة BET (TTC)",
+      "encaissement_bet": "تحصيل BET (TTC)"
+    }
+  },
+  "projects": {
+    "title": "المشاريع",
+    "new": "مشروع جديد",
+    "types": {
+      "Industriel": "مشروع صناعي",
+      "Batiment": "مباني",
+      "Equipement_Public": "تجهيزات عمومية"
+    }
+  },
+  "users": {
+    "title": "المستخدمون",
+    "new": "مستخدم جديد",
+    "activate": "تفعيل",
+    "deactivate": "تعطيل",
+    "reset_password": "إعادة تعيين كلمة المرور"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "confirm": "تأكيد",
+    "search": "بحث",
+    "loading": "جارٍ التحميل...",
+    "no_data": "لا توجد بيانات",
+    "error": "حدث خطأ",
+    "success": "تمت العملية بنجاح",
+    "late": "متأخر",
+    "active": "نشط",
+    "inactive": "غير نشط"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "mark_all_read": "تحديد الكل كمقروء",
+    "no_notifications": "لا توجد إشعارات",
+    "report_submitted": "تم إرسال التقرير",
+    "report_accepted": "تم قبول التقرير",
+    "report_rejected": "تم رفض التقرير",
+    "report_reminder": "تذكير بالتقرير"
+  }
+}

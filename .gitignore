@@ -1,0 +1,22 @@
+# Dependencies & builds
+node_modules/
+dist/
+
+# Secrets & certificates
+.env
+.env.*
+SSL/
+*.dat
+
+# Local account lists (local passwords only)
+backend/test.md
+frontend/src/accounts.txt
+GEE_Comptes_Utilisateurs.docx
+
+# Client Excel templates
+excel canvas/
+~$*
+
+# Tooling output
+graphify-out/
+*.log

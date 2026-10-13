@@ -1,0 +1,108 @@
+{
+  "app_name": "GEE Platform",
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Groupe Études & Engineering",
+    "email": "Professional email address",
+    "password": "Password",
+    "submit": "Sign In",
+    "loading": "Signing in...",
+    "error_invalid": "Invalid email or password",
+    "error_inactive": "Account disabled — contact administrator"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "reports": "Reports",
+    "projects": "Projects",
+    "users": "Users",
+    "bureaus": "Bureaus",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "week": "Week",
+    "total_reports": "Total Reports",
+    "accepted": "Accepted",
+    "pending": "Pending",
+    "late": "Late",
+    "rejected": "Rejected",
+    "submission_rate": "Submission Rate",
+    "bureau_status": "Bureau Status",
+    "export_excel": "Export Excel"
+  },
+  "reports": {
+    "title": "Weekly Reports",
+    "new": "New Report",
+    "submit": "Submit",
+    "save_draft": "Save Draft",
+    "accept": "Accept",
+    "reject": "Reject",
+    "observation": "Observation",
+    "forward_to_gee": "Forward to GEE",
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "bureau_reviewed": "Forwarded to GEE",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "non_soumis": "Not submitted"
+    },
+    "fields": {
+      "project": "Project",
+      "site": "Project site",
+      "entreprise": "Contractor",
+      "date_ods": "ODS Date",
+      "delais": "Contractual duration (months)",
+      "taux_avancement_1": "Progress rate (%) — date 1",
+      "taux_avancement_2": "Progress rate (%) — date 2",
+      "taux_consommation_delais": "Schedule consumption (%)",
+      "montant_marche": "Contract amount (DA/TTC)",
+      "taux_financier": "Financial consumption (%)",
+      "facturation_entreprise": "Contractor invoicing (TTC)",
+      "encaissement_entreprise": "Contractor collection (TTC)",
+      "facturation_bet": "BET invoicing (TTC)",
+      "encaissement_bet": "BET collection (TTC)"
+    }
+  },
+  "projects": {
+    "title": "Projects",
+    "new": "New Project",
+    "types": {
+      "Industriel": "Industrial Project",
+      "Batiment": "Buildings",
+      "Equipement_Public": "Public Equipment"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "new": "New User",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "reset_password": "Reset Password"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "search": "Search",
+    "loading": "Loading...",
+    "no_data": "No data",
+    "error": "An error occurred",
+    "success": "Operation successful",
+    "late": "Late",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "mark_all_read": "Mark all as read",
+    "no_notifications": "No notifications",
+    "report_submitted": "Report submitted",
+    "report_accepted": "Report accepted",
+    "report_rejected": "Report rejected",
+    "report_reminder": "Report reminder"
+  }
+}
