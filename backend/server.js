@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 
 // Routes
@@ -68,11 +69,24 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', platform: 'GEE Pla
 // ─── Socket.io ────────────────────────────────────────────────
 const connectedUsers = new Map(); // userId -> socketId
 
+// Authenticate the handshake — the userId comes from the verified token, never from the client
+io.use((socket, next) => {
+  try {
+    const decoded = jwt.verify(socket.handshake.auth?.token, process.env.JWT_ACCESS_SECRET, {
+      algorithms: ['HS256']
+    });
+    if (decoded.type && decoded.type !== 'access') return next(new Error('Token invalide'));
+    socket.data.userId = String(decoded.id);
+    next();
+  } catch {
+    next(new Error('Non authentifié'));
+  }
+});
+
 io.on('connection', (socket) => {
-  socket.on('register', (userId) => {
-    connectedUsers.set(userId, socket.id);
-    console.log(`User ${userId} connected via socket`);
-  });
+  const { userId } = socket.data;
+  connectedUsers.set(userId, socket.id);
+  console.log(`User ${userId} connected via socket`);
 
   socket.on('disconnect', () => {
     for (const [userId, socketId] of connectedUsers.entries()) {

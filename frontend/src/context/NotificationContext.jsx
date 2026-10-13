@@ -17,7 +17,7 @@ export const NotificationProvider = ({ children }) => {
     if (!user) { setNotifications([]); setUnreadCount(0); return; }
     fetchNotifications();
     connectSocket();
-    return () => socketRef.current?.disconnect();
+    return () => { socketRef.current?.disconnect(); socketRef.current = null; };
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -29,8 +29,18 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const connectSocket = () => {
-    socketRef.current = io(SOCKET_URL, { withCredentials: true });
-    socketRef.current.emit('register', user._id);
+    // auth as a function so every reconnect sends the current (refreshed) access token
+    socketRef.current = io(SOCKET_URL, {
+      withCredentials: true,
+      auth: (cb) => cb({ token: localStorage.getItem('accessToken') })
+    });
+    // A rejected handshake (e.g. expired token) is not retried automatically —
+    // retry shortly, by which time api.js will usually have refreshed the token
+    const socket = socketRef.current;
+    socket.on('connect_error', () => {
+      if (socket.active) return; // network error — socket.io retries on its own
+      setTimeout(() => { if (socketRef.current === socket) socket.connect(); }, 5000);
+    });
     socketRef.current.on('notification', (notif) => {
       setNotifications(prev => [notif, ...prev]);
       setUnreadCount(prev => prev + 1);
