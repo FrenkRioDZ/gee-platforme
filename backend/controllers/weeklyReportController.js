@@ -832,9 +832,7 @@ const exportConsolidated = async (req, res) => {
       return res.status(404).json({ message: 'Aucun rapport trouvé pour cette période' });
     }
 
-    const rangeLabel = `${dayStart.toLocaleDateString('fr-DZ')} au ${dayEnd.toLocaleDateString('fr-DZ')}`;
-
-    const wb = await exportWeeklyReports(reports, rangeLabel);
+    const wb = await exportWeeklyReports(reports, dayEnd);
 
     const filename = `Rapport_Consolide_${dayEnd.toISOString().split('T')[0]}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

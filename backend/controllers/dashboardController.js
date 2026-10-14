@@ -171,7 +171,7 @@ const exportWeekly = async (req, res) => {
       filter.bureau = req.user.bureau._id;
     }
     const found = await WeeklyReport.find(filter)
-      .populate('project', 'name type siteLocation entrepriseRealisation dateODS delaisContractuel')
+      .populate('project', 'name type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .populate('canvasVersion');
@@ -179,7 +179,7 @@ const exportWeekly = async (req, res) => {
     const reports = await addMissingReports(found, deadline, filter.bureau);
 
     const label = deadline.toISOString().split('T')[0];
-    const workbook = await exportWeeklyReports(reports, label);
+    const workbook = await exportWeeklyReports(reports, deadline);
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=rapport_hebdomadaire_${label}.xlsx`);
