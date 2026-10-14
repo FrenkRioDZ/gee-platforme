@@ -262,10 +262,21 @@ const createOrUpdateDraft = async (req, res) => {
       return res.status(400).json({ message: "Aucun modèle de rapport (canvas) actif pour ce type de projet" });
     }
 
-    const weekLabel = getWeekLabel(project.dateODS);
-    const deadline = getWeekDeadline();
-    const weekStart = new Date(deadline);
+    let weekLabel = getWeekLabel(project.dateODS);
+    let deadline = getWeekDeadline();
+    let weekStart = new Date(deadline);
     weekStart.setDate(weekStart.getDate() - 6);
+
+    // Editing an existing report keeps the week it was written for — a late
+    // report saved after Wednesday must not slide into the next week.
+    if (req.params.id) {
+      const target = await WeeklyReport.findById(req.params.id).select('project weekLabel weekStart weekEnd');
+      if (!target) return res.status(404).json({ message: 'Rapport introuvable' });
+      if (target.project.toString() !== String(projectId)) {
+        return res.status(400).json({ message: 'Le rapport ne correspond pas à ce projet' });
+      }
+      ({ weekLabel, weekStart, weekEnd: deadline } = target);
+    }
 
     // Check if another bureau already owns this report this week
     const ownedByOther = await WeeklyReport.findOne({
@@ -342,7 +353,8 @@ const createOrUpdateDraft = async (req, res) => {
       values.set('delais_restant', Number(restant.toFixed(1)));
     }
 
-    const computedLate = new Date() > deadline;
+    // Lateness is fixed at first submission — correcting a rejected report after the deadline is not late
+    const computedLate = !existing?.submittedAt && new Date() > deadline;
 
     const reportData = {
       project: projectId,
@@ -398,6 +410,10 @@ const submitReport = async (req, res) => {
     const hasOverride = report.deadlineOverride?.expiresAt &&
       new Date() < new Date(report.deadlineOverride.expiresAt);
 
+    if (!report.isLate && !report.submittedAt && new Date() > report.weekEnd) {
+      report.isLate = true;
+      await report.save();
+    }
     if (report.isLate && !hasOverride) {
       return res.status(400).json({ message: 'Délai dépassé — soumission impossible' });
     }
@@ -469,6 +485,7 @@ const submitReport = async (req, res) => {
     report.status = 'submitted';
     report.submittedBy = req.user._id;
     report.submittedAt = new Date();
+    if (!report.firstSubmittedAt) report.firstSubmittedAt = report.submittedAt;
     await report.save();
 
     const admins = await User.find({
@@ -577,10 +594,6 @@ const bureauRejectReport = async (req, res) => {
     report.bureauApprovedAt = new Date();
     report.rejectionNote = observation;
     report.rejectionHistory.push({ source: 'bureau', from: req.user._id, note: observation });
-    const deadline = getWeekDeadline();
-    if (new Date() > deadline) {
-      report.isLate = true;
-    }
 
     await report.save();
 
@@ -676,10 +689,6 @@ const rejectReport = async (req, res) => {
     report.rejectionNote = observation;
     report.rejectionHistory.push({ source: 'gee', from: req.user._id, note: observation });
 
-    const deadline = getWeekDeadline();
-    if (new Date() > deadline) {
-      report.isLate = true;
-    }
     await report.save();
 
     const geeAdmins = await User.find({ role: 'gee_super_admin', isActive: true });
@@ -872,9 +881,98 @@ const grantDeadlineOverride = async (req, res) => {
   }
 };
 
+// Week end (Wednesday 23:59:59.999) of the week containing `date`; defaults to last week
+const resolvePastWeekEnd = (date) => {
+  if (date) return getWeekDeadline(new Date(date));
+  const d = getWeekDeadline();
+  d.setDate(d.getDate() - 7);
+  return d;
+};
+
+// ─── MISSING REPORTS FOR A PAST WEEK (GEE) ────────────────────
+const getMissingReports = async (req, res) => {
+  try {
+    const { addMissingReports } = require('../utils/excelExport');
+    const weekEnd = resolvePastWeekEnd(req.query.weekEnd);
+    const found = await WeeklyReport.find({ weekEnd }).select('project');
+    const all = await addMissingReports(found, weekEnd, req.query.bureau || undefined);
+    const missing = all
+      .filter(r => r.status === 'missing')
+      .map(r => ({
+        project: { _id: r.project._id, name: r.project.name },
+        bureau: r.bureau,
+        weekLabel: r.weekLabel,
+      }));
+    res.json({ weekEnd, missing });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── EXTENSION FOR A REPORT THAT WAS NEVER STARTED (GEE) ──────
+// Creates the missing week's report as a late draft with a 24h override,
+// so the bureau can fill it in and submit it under its own week.
+const grantMissingOverride = async (req, res) => {
+  try {
+    const { projectId, weekEnd: weekEndInput } = req.body;
+    const weekEnd = resolvePastWeekEnd(weekEndInput);
+    if (new Date() <= weekEnd) {
+      return res.status(400).json({ message: 'Le délai de cette semaine n\'est pas encore dépassé' });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project || !project.hasWeeklyReport || !project.isActive) {
+      return res.status(404).json({ message: 'Projet introuvable ou inactif' });
+    }
+
+    const weekLabel = getWeekLabel(project.dateODS, weekEnd);
+    if (await WeeklyReport.exists({ project: project._id, weekLabel })) {
+      return res.status(400).json({ message: 'Un rapport existe déjà pour cette semaine' });
+    }
+
+    const canvas = await ReportCanvas.findOne({ projectType: project.type, isActive: true });
+    if (!canvas) {
+      return res.status(400).json({ message: "Aucun modèle de rapport (canvas) actif pour ce type de projet" });
+    }
+
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    const expiresAt = new Date(Date.now() + 24 * 3600000);
+
+    const report = await WeeklyReport.create({
+      project: project._id,
+      bureau: project.bureau,
+      weekLabel, weekStart, weekEnd,
+      createdBy: req.user._id,
+      status: 'draft',
+      canvasVersion: canvas._id,
+      isLate: true,
+      deadlineOverride: { grantedBy: req.user._id, grantedAt: new Date(), expiresAt }
+    });
+
+    const admins = await User.find({
+      bureau: project.bureau,
+      role: 'bureau_technical_admin',
+      isActive: true
+    });
+    for (const admin of admins) {
+      await notify(req, admin._id, 'report_submitted',
+        'Extension de délai accordée',
+        `Une extension de 24h a été accordée pour le rapport non soumis du projet ${project.name} (${weekLabel})`,
+        report._id
+      );
+    }
+
+    res.status(201).json({ message: 'Extension accordée — valable 24h', expiresAt, report });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getReports, getReport, getLastReportValues,
   createOrUpdateDraft, submitReport,
   bureauAdminSubmit, bureauRejectReport, acceptReport,
-  rejectReport, getCurrentWeekStatus, exportConsolidated, exportReport, grantDeadlineOverride
+  rejectReport, getCurrentWeekStatus, exportConsolidated, exportReport, grantDeadlineOverride,
+  getMissingReports, grantMissingOverride
 };

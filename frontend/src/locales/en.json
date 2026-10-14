@@ -27,6 +27,7 @@
     "pending": "Pending",
     "late": "Late",
     "rejected": "Rejected",
+    "missing": "Not submitted",
     "submission_rate": "Submission Rate",
     "bureau_status": "Bureau Status",
     "export_excel": "Export Excel"

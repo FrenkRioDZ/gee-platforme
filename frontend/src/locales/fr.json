@@ -27,6 +27,7 @@
     "pending": "En attente",
     "late": "En retard",
     "rejected": "Rejetés",
+    "missing": "Non soumis",
     "submission_rate": "Taux de soumission",
     "bureau_status": "Statut des Filiales",
     "export_excel": "Exporter Excel"

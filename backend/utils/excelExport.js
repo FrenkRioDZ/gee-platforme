@@ -22,6 +22,7 @@ const TRAILING_COLUMNS = [
   { header: 'Soumis le', key: '__submittedAt', width: 18 },
   { header: 'Envoyé à GEE le', key: '__sentToGeeAt', width: 18 },
   { header: 'En retard', key: '__isLate', width: 10 },
+  { header: 'Retard', key: '__lateBy', width: 12 },
 ];
 
 // "07/10/2026 14:32" in Algeria time, whatever the server's timezone
@@ -29,6 +30,15 @@ const fmtDateTime = (d) => new Date(d).toLocaleString('fr-DZ', {
   timeZone: 'Africa/Algiers', day: '2-digit', month: '2-digit', year: 'numeric',
   hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
 });
+
+// How long after the Wednesday deadline the report was submitted, e.g. "1j 4h"
+const fmtLateBy = (report) => {
+  // Older reports predate firstSubmittedAt — fall back to the latest submission
+  const submitted = report.firstSubmittedAt || report.submittedAt;
+  if (!report.isLate || !submitted || !report.weekEnd) return '—';
+  const hours = Math.max(0, Math.floor((new Date(submitted) - new Date(report.weekEnd)) / 3600000));
+  return hours >= 24 ? `${Math.floor(hours / 24)}j ${hours % 24}h` : `${hours}h`;
+};
 
 const SENT_TO_GEE_STATUSES =['bureau_approved', 'accepted', 'rejected'];
 
@@ -160,6 +170,7 @@ const exportWeeklyReports = async (reports, weekLabel) => {
         ? fmtDateTime(report.bureauApprovedAt)
         : 'Non envoyé',
       __isLate: report.isLate ? 'Oui' : 'Non',
+      __lateBy: fmtLateBy(report),
     };
 
     // Canvas-driven values — a report whose canvas lacks a column simply

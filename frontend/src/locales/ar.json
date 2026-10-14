@@ -27,6 +27,7 @@
     "pending": "قيد الانتظار",
     "late": "متأخرة",
     "rejected": "مرفوضة",
+    "missing": "غير مقدمة",
     "submission_rate": "نسبة التقديم",
     "bureau_status": "حالة المكاتب",
     "export_excel": "تصدير Excel"

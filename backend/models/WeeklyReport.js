@@ -26,6 +26,7 @@ const weeklyReportSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   submittedAt: Date,
+  firstSubmittedAt: Date, // never overwritten by resubmissions — measures lateness
   bureauApprovedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   bureauApprovedAt: Date,
   geeReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

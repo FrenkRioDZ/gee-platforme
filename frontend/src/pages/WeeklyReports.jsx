@@ -42,6 +42,9 @@ export default function WeeklyReports() {
   const [overrideFilters, setOverrideFilters] = useState({ bureau: '', weekLabel: '' });
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [overrideSuccess, setOverrideSuccess] = useState('');
+  const [missingReports, setMissingReports] = useState([]);
+  const [missingWeek, setMissingWeek] = useState(''); // any date in the week; empty = last week
+  const [missingWeekEnd, setMissingWeekEnd] = useState(null);
 
   const gee = isGEE(user?.role);
   const [bureaus, setBureaus] = useState([]);
@@ -94,6 +97,28 @@ export default function WeeklyReports() {
       setOverrideReports(data.reports);
     } catch { }
     finally { setOverrideLoading(false); }
+  };
+
+  const fetchMissingReports = async (week = missingWeek) => {
+    try {
+      const params = new URLSearchParams();
+      if (week) params.set('weekEnd', week);
+      if (overrideFilters.bureau) params.set('bureau', overrideFilters.bureau);
+      const { data } = await api.get(`/reports/weekly/missing?${params}`);
+      setMissingReports(data.missing);
+      setMissingWeekEnd(data.weekEnd);
+    } catch { }
+  };
+
+  const handleGrantMissing = async (projectId) => {
+    try {
+      await api.post('/reports/weekly/grant-override-missing', { projectId, weekEnd: missingWeekEnd });
+      setOverrideSuccess('Extension accordée — valable 24h. Le rapport est créé en brouillon pour la filiale.');
+      fetchMissingReports();
+      fetchLateReports();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erreur');
+    }
   };
 
   const handleFilterChange = e => {
@@ -151,7 +176,7 @@ export default function WeeklyReports() {
               <Button
                 variant="outlined" size="small" color="warning"
                 startIcon={<LockOpen />}
-                onClick={() => { setOverrideModal(true); fetchLateReports(); }}
+                onClick={() => { setOverrideModal(true); fetchLateReports(); fetchMissingReports(); }}
               >
                 Extensions
               </Button>
@@ -387,7 +412,7 @@ export default function WeeklyReports() {
             value={overrideFilters.weekLabel}
             onChange={e => setOverrideFilters(p => ({ ...p, weekLabel: e.target.value }))}
           />
-          <Button size="small" variant="outlined" onClick={fetchLateReports}>
+          <Button size="small" variant="outlined" onClick={() => { fetchLateReports(); fetchMissingReports(); }}>
             Filtrer
           </Button>
         </Box>
@@ -438,6 +463,51 @@ export default function WeeklyReports() {
                   </TableRow>
                 );
               })}
+            </TableBody>
+          </Table>
+        )}
+
+        {/* Reports never started for a past week */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+            Rapports non soumis
+            {missingWeekEnd && ` — semaine se terminant le ${new Date(missingWeekEnd).toLocaleDateString('fr-DZ')}`}
+          </Typography>
+          <TextField
+            size="small" type="date" label="Semaine du"
+            InputLabelProps={{ shrink: true }}
+            value={missingWeek}
+            onChange={e => { setMissingWeek(e.target.value); fetchMissingReports(e.target.value); }}
+          />
+        </Box>
+        {missingReports.length === 0 ? (
+          <Alert severity="info">Aucun rapport manquant pour cette semaine</Alert>
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Projet</TableCell>
+                <TableCell>Filiale</TableCell>
+                <TableCell>Semaine</TableCell>
+                <TableCell align="center">Extension</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {missingReports.map(m => (
+                <TableRow key={m.project._id}>
+                  <TableCell>{m.project.name}</TableCell>
+                  <TableCell>{m.bureau?.name}</TableCell>
+                  <TableCell>{m.weekLabel}</TableCell>
+                  <TableCell align="center">
+                    <Button
+                      size="small" variant="contained" color="warning"
+                      onClick={() => handleGrantMissing(m.project._id)}
+                    >
+                      Accorder 24h
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}

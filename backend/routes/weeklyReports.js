@@ -6,7 +6,8 @@ const {
   bureauAdminSubmit, bureauRejectReport, acceptReport,
   rejectReport, getCurrentWeekStatus,
   exportReport, exportConsolidated, grantDeadlineOverride,
-  getLastReportValues
+  getLastReportValues,
+  getMissingReports, grantMissingOverride
 } = require('../controllers/weeklyReportController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -15,6 +16,7 @@ router.use(protect);
 // View reports — all authenticated users (filtered by role in controller)
 router.get('/', getReports);
 router.get('/current-week', getCurrentWeekStatus);
+router.get('/missing', authorize('gee_super_admin'), getMissingReports);
 router.get('/project/:projectId/last-values', getLastReportValues);
 router.get('/:id', getReport);
 
@@ -76,6 +78,12 @@ router.get('/:id/export',
 router.put('/:id/grant-override',
   authorize('gee_super_admin'),
   grantDeadlineOverride
+);
+
+// Extension for a report that was never started
+router.post('/grant-override-missing',
+  authorize('gee_super_admin'),
+  grantMissingOverride
 );
 
 module.exports = router;

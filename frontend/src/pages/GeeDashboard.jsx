@@ -177,7 +177,7 @@ export default function GeeDashboard() {
         <>
           {/* Stat cards */}
           <Grid container spacing={2.5} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.total_reports')}
                 value={stats?.totalReports}
@@ -185,7 +185,7 @@ export default function GeeDashboard() {
                 color="#0D3B6E"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.accepted')}
                 value={stats?.totalAccepted}
@@ -193,7 +193,7 @@ export default function GeeDashboard() {
                 color="#2E7D32"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.pending')}
                 value={stats?.totalPending}
@@ -201,7 +201,7 @@ export default function GeeDashboard() {
                 color="#E65100"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.rejected')}
                 value={stats?.totalRejected}
@@ -209,7 +209,7 @@ export default function GeeDashboard() {
                 color="#C62828"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.late')}
                 value={stats?.totalLate}
@@ -217,7 +217,15 @@ export default function GeeDashboard() {
                 color="#880E4F"
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md>
+              <StatCard
+                title={t('dashboard.missing')}
+                value={stats?.totalMissing}
+                icon={<Warning />}
+                color="#4E342E"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md>
               <StatCard
                 title={t('dashboard.submission_rate')}
                 value={stats?.submissionRate}

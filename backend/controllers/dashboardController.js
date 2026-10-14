@@ -61,6 +61,8 @@ const geeDashboard = async (req, res) => {
     const totalAccepted = reports.filter(r => r.status === 'accepted').length;
     const totalRejected = reports.filter(r => r.status === 'rejected').length;
     const totalLate = reports.filter(r => r.isLate).length;
+    // Active projects with no report at all this week
+    const totalMissing = (await addMissingReports(reports, deadline)).length - reports.length;
     const totalPending = reports.filter(r =>
       ['submitted', 'bureau_reviewed'].includes(r.status)
     ).length;
@@ -97,6 +99,7 @@ const geeDashboard = async (req, res) => {
         totalAccepted,
         totalRejected,
         totalLate,
+        totalMissing,
         totalPending,
         submissionRate: totalReports > 0
           ? `${Math.round((totalAccepted / totalReports) * 100)}%`
