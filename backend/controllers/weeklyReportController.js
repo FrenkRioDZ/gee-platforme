@@ -163,6 +163,18 @@ const getReports = async (req, res) => {
     if (req.query.bureau && mongoose.Types.ObjectId.isValid(String(req.query.bureau))) {
       filter.bureau = new mongoose.Types.ObjectId(String(req.query.bureau));
     }
+    // Calendar week (Thu→Wed) shared by all projects — any date inside the week works
+    if (req.query.weekEnd && !Number.isNaN(Date.parse(String(req.query.weekEnd)))) {
+      const weekEnd = getWeekDeadline(new Date(String(req.query.weekEnd)));
+      const dayStart = new Date(weekEnd); dayStart.setHours(0, 0, 0, 0);
+      filter.weekEnd = { $gte: dayStart, $lte: weekEnd };
+    }
+    // Project name search (escaped — user text must not become a regex)
+    if (req.query.search && !filter.project) {
+      const escaped = String(req.query.search).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const projects = await Project.find({ name: { $regex: escaped, $options: 'i' } }).select('_id');
+      filter.project = { $in: projects.map(p => p._id) };
+    }
     if (req.user.role.startsWith('bureau_')) {
       filter.bureau = req.user.bureau._id;
     }
@@ -171,7 +183,7 @@ const getReports = async (req, res) => {
       .populate('project', 'name type siteLocation')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
-      .sort({ createdAt: -1 })
+      .sort({ weekEnd: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit);
     res.json({

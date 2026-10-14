@@ -7,13 +7,26 @@ import {
   TextField, Select, MenuItem, FormControl, InputLabel,
   CircularProgress, Alert, IconButton, Tooltip, Chip, Pagination
 } from '@mui/material';
-import { Add, Visibility, Refresh, FilterList, Download, FileDownload, LockOpen } from '@mui/icons-material';
+import {
+  Add, Visibility, Refresh, FilterList, Download, FileDownload, LockOpen,
+  CalendarMonth, ChevronLeft, ChevronRight, Close, Search
+} from '@mui/icons-material';
 import Layout from '../components/layout/Layout';
 import StatusBadge from '../components/ui/StatusBadge';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { isGEE, canSubmitReport } from '../utils/roles';
 import Modal from '../components/ui/Modal';
+import WeekCalendarPicker from '../components/ui/WeekCalendarPicker';
+
+const EMPTY_FILTERS = { search: '', weekEnd: '', bureau: '', status: '', isLate: '' };
+const fmtDay = (d) => new Date(d).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit' });
+// Thursday → Wednesday range of a calendar week, from its week end
+const weekRange = (weekEnd) => {
+  const start = new Date(weekEnd);
+  start.setDate(start.getDate() - 6);
+  return `${fmtDay(start)} → ${fmtDay(weekEnd)}`;
+};
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tous les statuts' },
@@ -33,9 +46,12 @@ export default function WeeklyReports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ status: '', weekLabel: '', isLate: '' });
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [searchInput, setSearchInput] = useState('');
+  const [calendarAnchor, setCalendarAnchor] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideReports, setOverrideReports] = useState([]);
@@ -54,27 +70,39 @@ export default function WeeklyReports() {
     console.log('[table] gee:report-updated caught, refetching');
     window.addEventListener('gee:report-updated', handler);
     return () => window.removeEventListener('gee:report-updated', handler);
-  }, [filters, page]);
+  }, [filters, page, rowsPerPage]);
   
   useEffect(() => {
-    if (user?.role === 'gee_super_admin') {
+    if (isGEE(user?.role)) {
       api.get('/bureaus').then(({ data }) => setBureaus(data)).catch(() => { });
     }
   }, []);
 
-  useEffect(() => { setPage(1); }, [filters]);
-  useEffect(() => { fetchReports(); }, [filters, page]);
+  // Debounce project search so the table doesn't refetch on every keystroke
+  useEffect(() => {
+    const id = setTimeout(() => setFilters(prev => (
+      prev.search === searchInput.trim() ? prev : { ...prev, search: searchInput.trim() }
+    )), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const shiftWeek = (days) => {
+    const ref = new Date(filters.weekEnd || Date.now());
+    ref.setDate(ref.getDate() + days);
+    setFilters(prev => ({ ...prev, weekEnd: ref.toISOString() }));
+  };
+
+  useEffect(() => { setPage(1); }, [filters, rowsPerPage]);
+  useEffect(() => { fetchReports(); }, [filters, page, rowsPerPage]);
 
   const fetchReports = async () => {
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.set('status', filters.status);
-      if (filters.weekLabel) params.set('weekLabel', filters.weekLabel);
-      if (filters.isLate) params.set('isLate', filters.isLate);
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
       params.set('page', page);
-      params.set('limit', 10);
+      params.set('limit', rowsPerPage);
 
       const { data } = await api.get(`/reports/weekly?${params}`);
       setReports(data.reports);
@@ -149,13 +177,14 @@ export default function WeeklyReports() {
             </IconButton>
           </Tooltip>
           {gee && (
-            <Tooltip title="Exporter rapport consolidé">
+            <Tooltip title={filters.weekEnd ? 'Exporter la semaine sélectionnée' : 'Exporter la semaine en cours'}>
               <Button
                 variant="outlined" size="small"
                 startIcon={<FileDownload />}
                 onClick={async () => {
                   try {
-                    const response = await api.get('/reports/weekly/export/consolidated', { responseType: 'blob' });
+                    const params = filters.weekEnd ? `?weekEnd=${encodeURIComponent(filters.weekEnd)}` : '';
+                    const response = await api.get(`/reports/weekly/export/consolidated${params}`, { responseType: 'blob' });
                     const url = window.URL.createObjectURL(new Blob([response.data]));
                     const link = document.createElement('a');
                     link.href = url;
@@ -199,8 +228,60 @@ export default function WeeklyReports() {
           <FilterList fontSize="small" color="primary" />
           <Typography fontWeight={600} fontSize="0.875rem" color="primary.main">Filtres</Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField
+            size="small" placeholder="Rechercher un projet…"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            InputProps={{ startAdornment: <Search fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} /> }}
+            sx={{ minWidth: 220 }}
+          />
+
+          {/* Calendar week (Thu → Wed) — the same for every project, unlike "Semaine N" */}
+          <Box sx={{
+            display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider',
+            borderRadius: 1, px: 0.5, height: 40
+          }}>
+            <Tooltip title="Semaine précédente">
+              <IconButton size="small" onClick={() => shiftWeek(-7)}><ChevronLeft fontSize="small" /></IconButton>
+            </Tooltip>
+            <Button
+              size="small" startIcon={<CalendarMonth />}
+              onClick={e => setCalendarAnchor(e.currentTarget)}
+              sx={{ textTransform: 'none', minWidth: 170 }}
+            >
+              {filters.weekEnd ? `Semaine du ${weekRange(filters.weekEnd)}` : 'Toutes les semaines'}
+            </Button>
+            <Tooltip title="Semaine suivante">
+              <span>
+                <IconButton size="small" disabled={!filters.weekEnd} onClick={() => shiftWeek(7)}>
+                  <ChevronRight fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            {filters.weekEnd && (
+              <Tooltip title="Toutes les semaines">
+                <IconButton size="small" onClick={() => setFilters(prev => ({ ...prev, weekEnd: '' }))}>
+                  <Close fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+
+          {gee && (
+            <FormControl size="small" sx={{ minWidth: 170 }}>
+              <InputLabel>Filiale</InputLabel>
+              <Select name="bureau" value={filters.bureau}
+                onChange={handleFilterChange} label="Filiale">
+                <MenuItem value="">Toutes</MenuItem>
+                {bureaus.map(b => (
+                  <MenuItem key={b._id} value={b._id}>{b.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          <FormControl size="small" sx={{ minWidth: 170 }}>
             <InputLabel>Statut</InputLabel>
             <Select name="status" value={filters.status}
               onChange={handleFilterChange} label="Statut">
@@ -209,13 +290,6 @@ export default function WeeklyReports() {
               ))}
             </Select>
           </FormControl>
-
-          <TextField
-            size="small" label="Semaine (ex: 2026-W09)"
-            name="weekLabel" value={filters.weekLabel}
-            onChange={handleFilterChange}
-            sx={{ minWidth: 200 }}
-          />
 
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Retard</InputLabel>
@@ -228,10 +302,18 @@ export default function WeeklyReports() {
           </FormControl>
 
           <Button size="small" variant="outlined"
-            onClick={() => setFilters({ status: '', weekLabel: '', isLate: '' })}>
+            onClick={() => { setFilters(EMPTY_FILTERS); setSearchInput(''); }}>
             Réinitialiser
           </Button>
         </Box>
+
+        <WeekCalendarPicker
+          anchorEl={calendarAnchor}
+          open={Boolean(calendarAnchor)}
+          onClose={() => setCalendarAnchor(null)}
+          selectedWeekEnd={filters.weekEnd || null}
+          onSelect={(weekEndDate) => setFilters(prev => ({ ...prev, weekEnd: weekEndDate.toISOString() }))}
+        />
       </Card>
 
       {/* Table */}
@@ -293,6 +375,9 @@ export default function WeeklyReports() {
                     )}
                     <TableCell>
                       <Typography fontSize="0.85rem" fontWeight={500}>{report.weekLabel}</Typography>
+                      {report.weekEnd && (
+                        <Typography fontSize="0.7rem" color="text.secondary">{weekRange(report.weekEnd)}</Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Typography fontSize="0.8rem" color="text.secondary">
@@ -301,8 +386,8 @@ export default function WeeklyReports() {
                     </TableCell>
                     <TableCell align="center">
                       <Typography fontSize="0.85rem">
-                        {report.tauxAvancementGlobal != null
-                          ? `${report.tauxAvancementGlobal}%`
+                        {report.values?.tauxAvancementGlobal != null
+                          ? `${report.values.tauxAvancementGlobal}%`
                           : '—'
                         }
                       </Typography>
@@ -370,9 +455,21 @@ export default function WeeklyReports() {
             px: 2, py: 1.5, borderTop: '1px solid', borderColor: 'divider',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
           }}>
-            <Typography fontSize="0.75rem" color="text.secondary">
-              {pagination.total} rapport{pagination.total !== 1 ? 's' : ''}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography fontSize="0.75rem" color="text.secondary">
+                {pagination.total} rapport{pagination.total !== 1 ? 's' : ''}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography fontSize="0.75rem" color="text.secondary">Par page</Typography>
+                <Select
+                  size="small" value={rowsPerPage}
+                  onChange={e => setRowsPerPage(e.target.value)}
+                  sx={{ fontSize: '0.75rem', '& .MuiSelect-select': { py: 0.5 } }}
+                >
+                  {[10, 25, 50, 100].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+                </Select>
+              </Box>
+            </Box>
             <Pagination
               count={pagination.pages}
               page={page}
