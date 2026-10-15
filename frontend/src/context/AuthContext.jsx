@@ -31,6 +31,9 @@ export const AuthProvider = ({ children }) => {
     try { await api.post('/auth/logout'); } catch {}
     localStorage.removeItem('accessToken');
     setUser(null);
+    // Full page load, not an in-app redirect: the next login starts from the
+    // latest deployed version with nothing left in memory from this session
+    window.location.assign('/login');
   };
 
   const updateUser = (updates) => setUser(prev => ({ ...prev, ...updates }));
