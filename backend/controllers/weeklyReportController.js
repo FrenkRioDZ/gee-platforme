@@ -155,7 +155,11 @@ const getReports = async (req, res) => {
   try {
     const filter = {};
     if (req.query.weekLabel) filter.weekLabel = String(req.query.weekLabel);
-    if (req.query.status) filter.status = String(req.query.status);
+    // One status, or several comma-separated (e.g. draft,rejected,bureau_rejected)
+    if (req.query.status) {
+      const statuses = String(req.query.status).split(',');
+      filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
+    }
     if (req.query.isLate) filter.isLate = req.query.isLate === 'true';
     if (req.query.project && mongoose.Types.ObjectId.isValid(String(req.query.project))) {
       filter.project = new mongoose.Types.ObjectId(String(req.query.project));

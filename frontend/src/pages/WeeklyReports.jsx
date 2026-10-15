@@ -118,7 +118,8 @@ export default function WeeklyReports() {
   const fetchLateReports = async () => {
     setOverrideLoading(true);
     try {
-      const params = new URLSearchParams({ isLate: 'true', status: 'draft' });
+      // Every late report the BET can no longer submit without an extension
+      const params = new URLSearchParams({ isLate: 'true', status: 'draft,rejected,bureau_rejected' });
       if (overrideFilters.bureau) params.set('bureau', overrideFilters.bureau);
       if (overrideFilters.weekLabel) params.set('weekLabel', overrideFilters.weekLabel);
       const { data } = await api.get(`/reports/weekly?${params}`);

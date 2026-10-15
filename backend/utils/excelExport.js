@@ -13,12 +13,13 @@ const fmtDate = (d) => new Date(d).toLocaleDateString('fr-DZ', {
   timeZone: 'Africa/Algiers', day: '2-digit', month: '2-digit', year: 'numeric',
 });
 
-// How long after the Wednesday deadline the report was submitted, e.g. "1j 4h"
+// How long after the Wednesday deadline the report reached the GEE, e.g. "1j 4h".
+// The deadline is for reaching the GEE: a report the BET user submitted on time but
+// the BET admin forwarded on Thursday is late by the forwarding delay.
 const fmtLateBy = (report) => {
-  // Older reports predate firstSubmittedAt — fall back to the latest submission
-  const submitted = report.firstSubmittedAt || report.submittedAt;
-  if (!report.isLate || !submitted || !report.weekEnd) return '—';
-  const hours = Math.max(0, Math.floor((new Date(submitted) - new Date(report.weekEnd)) / 3600000));
+  if (!report.isLate || !report.weekEnd) return '—';
+  if (!SENT_TO_GEE_STATUSES.includes(report.status) || !report.bureauApprovedAt) return 'Non transmis';
+  const hours = Math.max(0, Math.floor((new Date(report.bureauApprovedAt) - new Date(report.weekEnd)) / 3600000));
   return hours >= 24 ? `${Math.floor(hours / 24)}j ${hours % 24}h` : `${hours}h`;
 };
 
