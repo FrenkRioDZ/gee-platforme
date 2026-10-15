@@ -28,6 +28,55 @@ const weekRange = (weekEnd) => {
   return `${fmtDay(start)} → ${fmtDay(weekEnd)}`;
 };
 
+// Calendar week (Thu → Wed) — the same for every project, unlike "Semaine N".
+// weekEnd '' means "all weeks" (or whatever default the caller gives allLabel).
+function WeekNavigator({ weekEnd, onChange, allLabel = 'Toutes les semaines' }) {
+  const [anchor, setAnchor] = useState(null);
+  const shift = (days) => {
+    const ref = new Date(weekEnd || Date.now());
+    ref.setDate(ref.getDate() + days);
+    onChange(ref.toISOString());
+  };
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider',
+      borderRadius: 1, px: 0.5, height: 40
+    }}>
+      <Tooltip title="Semaine précédente">
+        <IconButton size="small" onClick={() => shift(-7)}><ChevronLeft fontSize="small" /></IconButton>
+      </Tooltip>
+      <Button
+        size="small" startIcon={<CalendarMonth />}
+        onClick={e => setAnchor(e.currentTarget)}
+        sx={{ textTransform: 'none', minWidth: 170 }}
+      >
+        {weekEnd ? `Semaine du ${weekRange(weekEnd)}` : allLabel}
+      </Button>
+      <Tooltip title="Semaine suivante">
+        <span>
+          <IconButton size="small" disabled={!weekEnd} onClick={() => shift(7)}>
+            <ChevronRight fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      {weekEnd && (
+        <Tooltip title={allLabel}>
+          <IconButton size="small" onClick={() => onChange('')}>
+            <Close fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
+      <WeekCalendarPicker
+        anchorEl={anchor}
+        open={Boolean(anchor)}
+        onClose={() => setAnchor(null)}
+        selectedWeekEnd={weekEnd || null}
+        onSelect={(d) => onChange(d.toISOString())}
+      />
+    </Box>
+  );
+}
+
 const STATUS_OPTIONS = [
   { value: '', label: 'Tous les statuts' },
   { value: 'draft', label: 'Brouillon' },
@@ -48,18 +97,16 @@ export default function WeeklyReports() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [searchInput, setSearchInput] = useState('');
-  const [calendarAnchor, setCalendarAnchor] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [overrideModal, setOverrideModal] = useState(false);
   const [overrideReports, setOverrideReports] = useState([]);
-  const [overrideFilters, setOverrideFilters] = useState({ bureau: '', weekLabel: '' });
+  const [overrideFilters, setOverrideFilters] = useState({ bureau: '', weekEnd: '' });
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [overrideSuccess, setOverrideSuccess] = useState('');
   const [missingReports, setMissingReports] = useState([]);
-  const [missingWeek, setMissingWeek] = useState(''); // any date in the week; empty = last week
   const [missingWeekEnd, setMissingWeekEnd] = useState(null);
 
   const gee = isGEE(user?.role);
@@ -85,12 +132,6 @@ export default function WeeklyReports() {
     )), 300);
     return () => clearTimeout(id);
   }, [searchInput]);
-
-  const shiftWeek = (days) => {
-    const ref = new Date(filters.weekEnd || Date.now());
-    ref.setDate(ref.getDate() + days);
-    setFilters(prev => ({ ...prev, weekEnd: ref.toISOString() }));
-  };
 
   useEffect(() => { setPage(1); }, [filters, rowsPerPage]);
   useEffect(() => { fetchReports(); }, [filters, page, rowsPerPage]);
@@ -121,17 +162,18 @@ export default function WeeklyReports() {
       // Every late report the BET can no longer submit without an extension
       const params = new URLSearchParams({ isLate: 'true', status: 'draft,rejected,bureau_rejected' });
       if (overrideFilters.bureau) params.set('bureau', overrideFilters.bureau);
-      if (overrideFilters.weekLabel) params.set('weekLabel', overrideFilters.weekLabel);
+      if (overrideFilters.weekEnd) params.set('weekEnd', overrideFilters.weekEnd);
       const { data } = await api.get(`/reports/weekly?${params}`);
       setOverrideReports(data.reports);
     } catch { }
     finally { setOverrideLoading(false); }
   };
 
-  const fetchMissingReports = async (week = missingWeek) => {
+  // No week chosen → the server defaults to last week
+  const fetchMissingReports = async () => {
     try {
       const params = new URLSearchParams();
-      if (week) params.set('weekEnd', week);
+      if (overrideFilters.weekEnd) params.set('weekEnd', overrideFilters.weekEnd);
       if (overrideFilters.bureau) params.set('bureau', overrideFilters.bureau);
       const { data } = await api.get(`/reports/weekly/missing?${params}`);
       setMissingReports(data.missing);
@@ -149,6 +191,13 @@ export default function WeeklyReports() {
       setError(err.response?.data?.message || 'Erreur');
     }
   };
+
+  // Refetch both extension lists whenever the window opens or its filters change
+  useEffect(() => {
+    if (!overrideModal) return;
+    fetchLateReports();
+    fetchMissingReports();
+  }, [overrideModal, overrideFilters]);
 
   const handleFilterChange = e => {
     setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -206,7 +255,7 @@ export default function WeeklyReports() {
               <Button
                 variant="outlined" size="small" color="warning"
                 startIcon={<LockOpen />}
-                onClick={() => { setOverrideModal(true); fetchLateReports(); fetchMissingReports(); }}
+                onClick={() => setOverrideModal(true)}
               >
                 Extensions
               </Button>
@@ -238,36 +287,10 @@ export default function WeeklyReports() {
             sx={{ minWidth: 220 }}
           />
 
-          {/* Calendar week (Thu → Wed) — the same for every project, unlike "Semaine N" */}
-          <Box sx={{
-            display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider',
-            borderRadius: 1, px: 0.5, height: 40
-          }}>
-            <Tooltip title="Semaine précédente">
-              <IconButton size="small" onClick={() => shiftWeek(-7)}><ChevronLeft fontSize="small" /></IconButton>
-            </Tooltip>
-            <Button
-              size="small" startIcon={<CalendarMonth />}
-              onClick={e => setCalendarAnchor(e.currentTarget)}
-              sx={{ textTransform: 'none', minWidth: 170 }}
-            >
-              {filters.weekEnd ? `Semaine du ${weekRange(filters.weekEnd)}` : 'Toutes les semaines'}
-            </Button>
-            <Tooltip title="Semaine suivante">
-              <span>
-                <IconButton size="small" disabled={!filters.weekEnd} onClick={() => shiftWeek(7)}>
-                  <ChevronRight fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            {filters.weekEnd && (
-              <Tooltip title="Toutes les semaines">
-                <IconButton size="small" onClick={() => setFilters(prev => ({ ...prev, weekEnd: '' }))}>
-                  <Close fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
+          <WeekNavigator
+            weekEnd={filters.weekEnd}
+            onChange={weekEnd => setFilters(prev => ({ ...prev, weekEnd }))}
+          />
 
           {gee && (
             <FormControl size="small" sx={{ minWidth: 170 }}>
@@ -308,13 +331,6 @@ export default function WeeklyReports() {
           </Button>
         </Box>
 
-        <WeekCalendarPicker
-          anchorEl={calendarAnchor}
-          open={Boolean(calendarAnchor)}
-          onClose={() => setCalendarAnchor(null)}
-          selectedWeekEnd={filters.weekEnd || null}
-          onSelect={(weekEndDate) => setFilters(prev => ({ ...prev, weekEnd: weekEndDate.toISOString() }))}
-        />
       </Card>
 
       {/* Table */}
@@ -491,12 +507,12 @@ export default function WeeklyReports() {
         {overrideSuccess && <Alert severity="success" sx={{ mb: 2 }}>{overrideSuccess}</Alert>}
 
         {/* Filters */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
           <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel>Filiale</InputLabel>
             <Select
               value={overrideFilters.bureau}
-              label="Bureau"
+              label="Filiale"
               onChange={e => setOverrideFilters(p => ({ ...p, bureau: e.target.value }))}
             >
               <MenuItem value="">Tous</MenuItem>
@@ -505,14 +521,10 @@ export default function WeeklyReports() {
               ))}
             </Select>
           </FormControl>
-          <TextField
-            size="small" label="Semaine (ex: Semaine 5)"
-            value={overrideFilters.weekLabel}
-            onChange={e => setOverrideFilters(p => ({ ...p, weekLabel: e.target.value }))}
+          <WeekNavigator
+            weekEnd={overrideFilters.weekEnd}
+            onChange={weekEnd => setOverrideFilters(p => ({ ...p, weekEnd }))}
           />
-          <Button size="small" variant="outlined" onClick={() => { fetchLateReports(); fetchMissingReports(); }}>
-            Filtrer
-          </Button>
         </Box>
 
         {/* Late reports table */}
@@ -541,7 +553,12 @@ export default function WeeklyReports() {
                   <TableRow key={r._id}>
                     <TableCell>{r.project?.name}</TableCell>
                     <TableCell>{r.bureau?.name}</TableCell>
-                    <TableCell>{r.weekLabel}</TableCell>
+                    <TableCell>
+                      {r.weekLabel}
+                      {r.weekEnd && (
+                        <Typography fontSize="0.7rem" color="text.secondary">{weekRange(r.weekEnd)}</Typography>
+                      )}
+                    </TableCell>
                     <TableCell><StatusBadge status={r.status} /></TableCell>
                     <TableCell align="center">
                       {hasActiveOverride ? (
@@ -566,18 +583,11 @@ export default function WeeklyReports() {
         )}
 
         {/* Reports never started for a past week */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 3, mb: 1 }}>
-          <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
-            Rapports non soumis
-            {missingWeekEnd && ` — semaine se terminant le ${new Date(missingWeekEnd).toLocaleDateString('fr-DZ')}`}
-          </Typography>
-          <TextField
-            size="small" type="date" label="Semaine du"
-            InputLabelProps={{ shrink: true }}
-            value={missingWeek}
-            onChange={e => { setMissingWeek(e.target.value); fetchMissingReports(e.target.value); }}
-          />
-        </Box>
+        <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
+          Rapports non soumis
+          {missingWeekEnd && ` — semaine du ${weekRange(missingWeekEnd)}`}
+          {!overrideFilters.weekEnd && ' (semaine dernière)'}
+        </Typography>
         {missingReports.length === 0 ? (
           <Alert severity="info">Aucun rapport manquant pour cette semaine</Alert>
         ) : (
