@@ -25,7 +25,9 @@ const getProjects = async (req, res) => {
       filter.bureau = new mongoose.Types.ObjectId(String(req.query.bureau));
     }
     if (req.user.role.startsWith('bureau_')) {
-      filter.bureau = req.user.bureau._id;
+      // Lead bureau or participant — participants also file reports on the project
+      delete filter.bureau;
+      filter.$or = [{ bureau: req.user.bureau._id }, { participantBureaus: req.user.bureau._id }];
     }
     if (req.query.cell) filter.cell = req.query.cell;
     if (req.query.weekly) filter.hasWeeklyReport = req.query.weekly === 'true';
@@ -52,9 +54,11 @@ const getProject = async (req, res) => {
 
     if (!project) return res.status(404).json({ message: 'Projet introuvable' });
 
-    // Bureau users can only see their own bureau's projects
+    // Bureau users can only see projects their bureau leads or participates in
+    const myBureau = req.user.bureau?._id?.toString();
     if (req.user.role.startsWith('bureau_') &&
-      project.bureau._id.toString() !== req.user.bureau._id.toString()) {
+      project.bureau._id.toString() !== myBureau &&
+      !project.participantBureaus.some(id => id.toString() === myBureau)) {
       return res.status(403).json({ message: 'Accès refusé' });
     }
 
