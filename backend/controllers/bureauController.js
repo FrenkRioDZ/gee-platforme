@@ -65,7 +65,7 @@ const addCell = async (req, res) => {
 
     // Bureau super admin can only manage their own bureau
     if (req.user.role === 'bureau_super_admin' &&
-        req.user.bureau.toString() !== bureau._id.toString()) {
+        req.user.bureau._id.toString() !== bureau._id.toString()) {
       return res.status(403).json({ message: 'Accès refusé' });
     }
 
@@ -89,7 +89,7 @@ const updateCell = async (req, res) => {
     if (!bureau) return res.status(404).json({ message: 'Bureau introuvable' });
 
     if (req.user.role === 'bureau_super_admin' &&
-        req.user.bureau.toString() !== bureau._id.toString()) {
+        req.user.bureau._id.toString() !== bureau._id.toString()) {
       return res.status(403).json({ message: 'Accès refusé' });
     }
 
@@ -114,7 +114,7 @@ const deleteCell = async (req, res) => {
     if (!bureau) return res.status(404).json({ message: 'Bureau introuvable' });
 
     if (req.user.role === 'bureau_super_admin' &&
-        req.user.bureau.toString() !== bureau._id.toString()) {
+        req.user.bureau._id.toString() !== bureau._id.toString()) {
       return res.status(403).json({ message: 'Accès refusé' });
     }
 
