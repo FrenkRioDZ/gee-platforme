@@ -100,7 +100,7 @@ export default function ReportDetail() {
 
   const fetchProjects = async () => {
     try {
-      const { data } = await api.get('/projects?active=true&hasWeeklyReport=true');
+      const { data } = await api.get('/projects?active=true&weekly=true');
       if (user?.role === 'bureau_user') {
         setProjects(data.filter(p =>
           p.assignedUsers?.some(u => (u._id || u) === user._id)
