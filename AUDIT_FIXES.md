@@ -7,8 +7,8 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | 1 | Plain FTP + open admin ports on the VPS (server-side, no code) | pending | — |
 | 2 | Any logged-in user could read any project's last report (`GET /reports/weekly/project/:id/last-values`) | fixed — bureau users limited to lead/participant projects | daf8ac9 |
 | 3 | Late/extension reports blocked by cumulative check against a *later* week | fixed — only earlier weeks are compared | 12418e3 |
-| 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | fixed — type added | see git log |
-| 5 | GEE dashboard "pending" counts non-existent statuses | pending | — |
+| 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | fixed — type added | 7514620 |
+| 5 | GEE dashboard "pending" counts non-existent statuses | fixed — counts submitted + bureau_approved | see git log |
 | 6 | Bureau super admins always refused on cell management | pending | — |
 | 7 | "Create project" crashes for GEE super admin | pending | — |
 | 8 | Bureau super admin can promote a user to bureau super admin via edit | pending | — |

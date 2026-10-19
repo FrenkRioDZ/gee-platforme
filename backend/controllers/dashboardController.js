@@ -33,7 +33,7 @@ const geeDashboard = async (req, res) => {
       const accepted = bureauReports.filter(r => r.status === 'accepted').length;
       const rejected = bureauReports.filter(r => r.status === 'rejected').length;
       const pending = bureauReports.filter(r =>
-        ['submitted', 'bureau_reviewed', 'gee_reviewing'].includes(r.status)
+        ['submitted', 'bureau_approved'].includes(r.status)
       ).length;
       const late = bureauReports.filter(r => r.isLate).length;
       const draft = bureauReports.filter(r => r.status === 'draft').length;
@@ -64,7 +64,7 @@ const geeDashboard = async (req, res) => {
     // Active projects with no report at all this week
     const totalMissing = (await addMissingReports(reports, deadline)).length - reports.length;
     const totalPending = reports.filter(r =>
-      ['submitted', 'bureau_reviewed'].includes(r.status)
+      ['submitted', 'bureau_approved'].includes(r.status)
     ).length;
 
     // Average financial consumption across all accepted reports
