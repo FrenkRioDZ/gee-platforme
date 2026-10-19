@@ -14,6 +14,6 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | 8 | Bureau super admin can promote a user to bureau super admin via edit | fixed — same rule as user creation | 288bdc1 |
 | 9 | Live notifications reach only the last-opened tab | fixed — one socket.io room per user | 42ad659 |
 | 10 | Participant bureaus can't see projects they participate in | fixed — project list and detail include participant projects | e07d5ce |
-| 11 | New-report form lists projects without weekly reports (`hasWeeklyReport` vs `weekly` param) | fixed — form sends weekly=true | see git log |
-| 12 | No test for week/deadline logic | pending | — |
+| 11 | New-report form lists projects without weekly reports (`hasWeeklyReport` vs `weekly` param) | fixed — form sends weekly=true | 297f6b5 |
+| 12 | No test for week/deadline logic | fixed — `backend/tests/week.test.js`, run with `npm test` in backend | see git log |
 | 13 | Leftover dead code / duplicates | pending | — |
