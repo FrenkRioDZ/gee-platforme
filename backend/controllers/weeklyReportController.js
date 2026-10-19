@@ -231,6 +231,16 @@ const getLastReportValues = async (req, res) => {
   try {
     const { projectId } = req.params;
 
+    // Bureau users may only read projects their bureau leads or participates in
+    const project = await Project.findById(projectId).select('bureau participantBureaus');
+    if (!project) return res.status(404).json({ message: 'Projet introuvable' });
+    if (req.user.role.startsWith('bureau_')) {
+      const allBureaus = [project.bureau, ...project.participantBureaus].map(id => id.toString());
+      if (!allBureaus.includes(req.user.bureau._id.toString())) {
+        return res.status(403).json({ message: 'Accès refusé' });
+      }
+    }
+
     const lastReport = await WeeklyReport.findOne({
       project: projectId,
       status: { $in: ['submitted', 'bureau_approved', 'accepted'] }
