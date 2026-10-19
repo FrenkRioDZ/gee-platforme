@@ -9,8 +9,8 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | 3 | Late/extension reports blocked by cumulative check against a *later* week | fixed — only earlier weeks are compared | 12418e3 |
 | 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | fixed — type added | 7514620 |
 | 5 | GEE dashboard "pending" counts non-existent statuses | fixed — counts submitted + bureau_approved | 80aa5a1 |
-| 6 | Bureau super admins always refused on cell management | fixed — compare bureau._id | see git log |
-| 7 | "Create project" crashes for GEE super admin | pending | — |
+| 6 | Bureau super admins always refused on cell management | fixed — compare bureau._id | bb16a5c |
+| 7 | "Create project" crashes for GEE super admin | fixed — create route is bureau super admin only (UI already hid it from GEE) | see git log |
 | 8 | Bureau super admin can promote a user to bureau super admin via edit | pending | — |
 | 9 | Live notifications reach only the last-opened tab | pending | — |
 | 10 | Participant bureaus can't see projects they participate in | pending | — |

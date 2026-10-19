@@ -13,8 +13,8 @@ router.get('/', getProjects);
 router.get('/types', getProjectTypes);
 router.get('/:id', getProject);
 
-// Only bureau super admin can create/update/delete
-router.post('/', authorize('bureau_super_admin', 'gee_super_admin'), createProject);
+// Bureau super admin creates; GEE super admin may also update and delete
+router.post('/', authorize('bureau_super_admin'), createProject); // project belongs to the creator's bureau — GEE has none
 router.put('/:id', authorize('bureau_super_admin', 'gee_super_admin'), updateProject);
 router.delete('/:id', authorize('gee_super_admin'), deleteProject);
 
