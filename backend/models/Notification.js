@@ -14,6 +14,7 @@ const notificationSchema = new mongoose.Schema({
       'report_rejected',
       'report_reminder',
       'report_late',
+      'report_missing',
       'observation_added',
       'permission_granted',
       'permission_revoked'
