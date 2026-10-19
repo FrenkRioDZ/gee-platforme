@@ -10,8 +10,8 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | fixed — type added | 7514620 |
 | 5 | GEE dashboard "pending" counts non-existent statuses | fixed — counts submitted + bureau_approved | 80aa5a1 |
 | 6 | Bureau super admins always refused on cell management | fixed — compare bureau._id | bb16a5c |
-| 7 | "Create project" crashes for GEE super admin | fixed — create route is bureau super admin only (UI already hid it from GEE) | see git log |
-| 8 | Bureau super admin can promote a user to bureau super admin via edit | pending | — |
+| 7 | "Create project" crashes for GEE super admin | fixed — create route is bureau super admin only (UI already hid it from GEE) | dc8fc89 |
+| 8 | Bureau super admin can promote a user to bureau super admin via edit | fixed — same rule as user creation | see git log |
 | 9 | Live notifications reach only the last-opened tab | pending | — |
 | 10 | Participant bureaus can't see projects they participate in | pending | — |
 | 11 | New-report form lists projects without weekly reports (`hasWeeklyReport` vs `weekly` param) | pending | — |

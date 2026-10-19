@@ -95,7 +95,7 @@ const updateUser = async (req, res) => {
     // Only GEE super admin may change roles at all
     if (role && role !== user.role) {
       if (req.user.role !== 'gee_super_admin') {
-        if (!role.startsWith('bureau_') || req.user.role !== 'bureau_super_admin') {
+        if (!role.startsWith('bureau_') || role === 'bureau_super_admin' || req.user.role !== 'bureau_super_admin') {
           return res.status(403).json({ message: 'Vous ne pouvez pas modifier ce rôle' });
         }
       }
