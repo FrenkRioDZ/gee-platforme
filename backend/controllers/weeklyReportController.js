@@ -6,7 +6,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const Bureau = require('../models/Bureau');
 const { sendEmail, emailTemplates } = require('../utils/email');
-const { getWeekLabel, getWeekDeadline } = require('../utils/scheduler');
+const { getWeekLabel, getWeekDeadline, getWeekStart } = require('../utils/scheduler');
 const { exportReportToExcel } = require('../utils/exportExcel');
 
 // ─── HELPER: Send notification (in-app + email) ────────────────
@@ -289,11 +289,10 @@ const createOrUpdateDraft = async (req, res) => {
 
     let weekLabel = getWeekLabel(project.dateODS);
     let deadline = getWeekDeadline();
-    let weekStart = new Date(deadline);
-    weekStart.setDate(weekStart.getDate() - 6);
+    let weekStart = getWeekStart(deadline);
 
     // Editing an existing report keeps the week it was written for — a late
-    // report saved after Wednesday must not slide into the next week.
+    // report saved after the deadline must not slide into the next week.
     if (req.params.id) {
       const target = await WeeklyReport.findById(req.params.id).select('project weekLabel weekStart weekEnd');
       if (!target) return res.status(404).json({ message: 'Rapport introuvable' });
@@ -905,12 +904,10 @@ const grantDeadlineOverride = async (req, res) => {
   }
 };
 
-// Week end (Wednesday 23:59:59.999) of the week containing `date`; defaults to last week
+// Week end (deadline 23:59:59.999) of the week containing `date`; defaults to last week
 const resolvePastWeekEnd = (date) => {
   if (date) return getWeekDeadline(new Date(date));
-  const d = getWeekDeadline();
-  d.setDate(d.getDate() - 7);
-  return d;
+  return getWeekDeadline(new Date(getWeekDeadline().getTime() - 7 * 86400000));
 };
 
 // ─── MISSING REPORTS FOR A PAST WEEK (GEE) ────────────────────
@@ -959,8 +956,7 @@ const grantMissingOverride = async (req, res) => {
       return res.status(400).json({ message: "Aucun modèle de rapport (canvas) actif pour ce type de projet" });
     }
 
-    const weekStart = new Date(weekEnd);
-    weekStart.setDate(weekStart.getDate() - 6);
+    const weekStart = getWeekStart(weekEnd);
     const expiresAt = new Date(Date.now() + 24 * 3600000);
 
     const report = await WeeklyReport.create({

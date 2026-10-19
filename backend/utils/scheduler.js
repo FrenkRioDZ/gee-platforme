@@ -7,55 +7,59 @@ const { sendEmail, emailTemplates } = require('./email');
 
 let appInstance = null;
 
-const getWeekDeadline = (date = new Date()) => {
-  const now = new Date(date);
-  const day = now.getDay();
-  const diff = (3 - day + 7) % 7;
-  const wednesday = new Date(now);
-  wednesday.setDate(now.getDate() + diff);
-  wednesday.setHours(23, 59, 59, 999);
-  return wednesday;
-};
+const DAY_MS = 86400000;
 
-const getCycleStart = (date) => {
+// Deadline moved from Wednesday to Tuesday (client request, Oct 2026). Weeks up to
+// this one keep their Wednesday deadline; the next week runs Thu 22/10 → Tue 27/10,
+// then every week runs Wednesday → Tuesday 23:59:59.999.
+const LAST_WEDNESDAY_DEADLINE = new Date(2026, 9, 21, 23, 59, 59, 999);
+
+// Next `weekday` (0=Sun..6=Sat) on or after `date`, at 23:59:59.999
+const nextWeekdayEnd = (date, weekday) => {
   const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = (day + 7 - 4) % 7;
-  d.setDate(d.getDate() - diff);
+  d.setDate(d.getDate() + (weekday - d.getDay() + 7) % 7);
+  d.setHours(23, 59, 59, 999);
   return d;
 };
 
+// Deadline (= week end) of the week containing `date`
+const getWeekDeadline = (date = new Date()) => {
+  const wednesday = nextWeekdayEnd(date, 3);
+  return wednesday <= LAST_WEDNESDAY_DEADLINE ? wednesday : nextWeekdayEnd(date, 2);
+};
+
+// First moment of the week ending at `weekEnd`: the day after the previous deadline
+const getWeekStart = (weekEnd) => {
+  const start = getWeekDeadline(new Date(new Date(weekEnd).getTime() - 7 * DAY_MS));
+  start.setDate(start.getDate() + 1);
+  start.setHours(0, 0, 0, 0);
+  return start;
+};
+
+// "Semaine N" counts deadlines since the project's ODS week. Rounding absorbs the
+// 6-day transition week, so numbering continues without a gap or a repeat.
 const getWeekLabel = (dateODS, referenceDate = new Date()) => {
   if (!dateODS) return 'Semaine 1';
-  const projectCycleStart = getCycleStart(dateODS);
-  const currentCycleStart = getCycleStart(referenceDate);
-  const weekNumber = Math.round((currentCycleStart - projectCycleStart) / (7 * 86400000)) + 1;
-  return `Semaine ${Math.max(weekNumber, 1)}`;
+  const weeks = Math.round((getWeekDeadline(referenceDate) - getWeekDeadline(dateODS)) / (7 * DAY_MS));
+  return `Semaine ${Math.max(weeks + 1, 1)}`;
 };
+
+// Cron jobs fire on both the old and new days; only the one matching the real deadline acts
+const hoursToDeadline = () => (getWeekDeadline() - Date.now()) / 3600000;
 
 function initScheduler(app) {
   appInstance = app;
 
-  // ─── TUESDAY 08:00 — First reminder ──────────────────────────
-  cron.schedule('0 8 * * 2', async () => {
-    console.log('[CRON] Tuesday reminder — running');
+  // ─── 08:00 the day before and the day of the deadline — reminders ──
+  cron.schedule('0 8 * * 1,2,3', async () => {
+    if (hoursToDeadline() > 40) return;
+    console.log('[CRON] Reminder — running');
     await sendReminders();
   });
 
-  // ─── WEDNESDAY 08:00 — Final reminder ────────────────────────
-  cron.schedule('0 8 * * 3', async () => {
-    console.log('[CRON] Wednesday final reminder — running');
-    await sendReminders();
-  });
-
-  // ─── WEDNESDAY 00:00 — Open submission window ─────────────────
-  cron.schedule('0 0 * * 3', async () => {
-    console.log('[CRON] Submission window now OPEN');
-  });
-
-  // ─── WEDNESDAY 23:59 — Close + mark late ─────────────────────
-  cron.schedule('59 23 * * 3', async () => {
+  // ─── Deadline day 23:59 — Close + mark late ──────────────────
+  cron.schedule('59 23 * * 2,3', async () => {
+    if (hoursToDeadline() > 1) return;
     console.log('[CRON] Deadline passed — marking late reports');
     await markLateReports();
     await notifyMissingReports();
@@ -183,4 +187,4 @@ async function notifyMissingReports() {
   }
 }
 
-module.exports = { getWeekLabel, getWeekDeadline, initScheduler };
+module.exports = { getWeekLabel, getWeekDeadline, getWeekStart, initScheduler };

@@ -18,32 +18,25 @@ import { useAuth } from '../context/AuthContext';
 import { isGEE, canSubmitReport } from '../utils/roles';
 import Modal from '../components/ui/Modal';
 import WeekCalendarPicker from '../components/ui/WeekCalendarPicker';
+import { getWeekDeadline, getWeekStart, prevWeekEnd, nextWeekEnd } from '../utils/week';
 
 const EMPTY_FILTERS = { search: '', weekEnd: '', bureau: '', status: '', isLate: '' };
 const fmtDay = (d) => new Date(d).toLocaleDateString('fr-DZ', { day: '2-digit', month: '2-digit' });
-// Thursday → Wednesday range of a calendar week, from its week end
-const weekRange = (weekEnd) => {
-  const start = new Date(weekEnd);
-  start.setDate(start.getDate() - 6);
-  return `${fmtDay(start)} → ${fmtDay(weekEnd)}`;
-};
+// Range of a calendar week, from its week end
+const weekRange = (weekEnd) => `${fmtDay(getWeekStart(weekEnd))} → ${fmtDay(weekEnd)}`;
 
-// Calendar week (Thu → Wed) — the same for every project, unlike "Semaine N".
+// Calendar week (ends on the deadline day) — the same for every project, unlike "Semaine N".
 // weekEnd '' means "all weeks" (or whatever default the caller gives allLabel).
 function WeekNavigator({ weekEnd, onChange, allLabel = 'Toutes les semaines' }) {
   const [anchor, setAnchor] = useState(null);
-  const shift = (days) => {
-    const ref = new Date(weekEnd || Date.now());
-    ref.setDate(ref.getDate() + days);
-    onChange(ref.toISOString());
-  };
+  const shift = (step) => onChange(step(weekEnd || getWeekDeadline()).toISOString());
   return (
     <Box sx={{
       display: 'flex', alignItems: 'center', border: '1px solid', borderColor: 'divider',
       borderRadius: 1, px: 0.5, height: 40
     }}>
       <Tooltip title="Semaine précédente">
-        <IconButton size="small" onClick={() => shift(-7)}><ChevronLeft fontSize="small" /></IconButton>
+        <IconButton size="small" onClick={() => shift(prevWeekEnd)}><ChevronLeft fontSize="small" /></IconButton>
       </Tooltip>
       <Button
         size="small" startIcon={<CalendarMonth />}
@@ -54,7 +47,7 @@ function WeekNavigator({ weekEnd, onChange, allLabel = 'Toutes les semaines' }) 
       </Button>
       <Tooltip title="Semaine suivante">
         <span>
-          <IconButton size="small" disabled={!weekEnd} onClick={() => shift(7)}>
+          <IconButton size="small" disabled={!weekEnd} onClick={() => shift(nextWeekEnd)}>
             <ChevronRight fontSize="small" />
           </IconButton>
         </span>

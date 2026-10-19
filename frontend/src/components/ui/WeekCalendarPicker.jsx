@@ -2,46 +2,34 @@ import { useState } from 'react';
 import { Box, IconButton, Typography, Popover } from '@mui/material';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
-const DAY_LABELS = ['Jeu', 'Ven', 'Sam', 'Dim', 'Lun', 'Mar', 'Mer'];
+import { getWeekDeadline, getWeekStart, nextWeekEnd } from '../../utils/week';
 
-// Same Thu-Wed cycle logic as the backend's getWeekDeadline/getCycleStart —
-// kept separate here since this runs client-side with no API round trip.
-const getCycleStart = (date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay(); // 0=Sun..6=Sat, Thu=4
-  const diff = (day + 7 - 4) % 7;
-  d.setDate(d.getDate() - diff);
-  return d;
-};
+const WEEKDAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
-const getWeekEndFromStart = (weekStart) => {
-  const end = new Date(weekStart);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return end;
-};
-
+// One row per reporting week overlapping the month. The transition week
+// (Thu 22/10 → Tue 27/10/2026) has 6 days; its row is padded with an empty cell.
 function buildWeeks(viewMonth, viewYear) {
-  const firstOfMonth = new Date(viewYear, viewMonth, 1);
   const lastOfMonth = new Date(viewYear, viewMonth + 1, 0);
-
-  let rowStart = getCycleStart(firstOfMonth);
   const weeks = [];
 
-  while (rowStart <= lastOfMonth) {
+  for (let weekEnd = getWeekDeadline(new Date(viewYear, viewMonth, 1)); ; weekEnd = nextWeekEnd(weekEnd)) {
+    const weekStart = getWeekStart(weekEnd);
+    if (weekStart > lastOfMonth) break;
     const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(rowStart);
-      d.setDate(d.getDate() + i);
-      days.push(d);
-    }
-    weeks.push({ weekStart: rowStart, weekEnd: getWeekEndFromStart(rowStart), days });
-    rowStart = new Date(rowStart);
-    rowStart.setDate(rowStart.getDate() + 7);
+    for (const d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) days.push(new Date(d));
+    while (days.length < 7) days.push(null);
+    weeks.push({ weekStart, weekEnd, days });
   }
   return weeks;
 }
+
+// Column headers only when every full week of the month starts on the same day
+// (not in October 2026, which mixes Thu→Wed and Wed→Tue weeks)
+const dayLabels = (weeks) => {
+  const full = weeks.filter(w => w.days[6]);
+  const starts = new Set(full.map(w => w.days[0].getDay()));
+  return starts.size === 1 ? full[0].days.map(d => WEEKDAYS[d.getDay()]) : null;
+};
 
 export default function WeekCalendarPicker({ anchorEl, open, onClose, selectedWeekEnd, onSelect }) {
   const today = new Date();
@@ -50,6 +38,7 @@ export default function WeekCalendarPicker({ anchorEl, open, onClose, selectedWe
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
 
   const weeks = buildWeeks(viewMonth, viewYear);
+  const labels = dayLabels(weeks);
   const monthLabel = new Date(viewYear, viewMonth, 1)
     .toLocaleDateString('fr-DZ', { month: 'long', year: 'numeric' });
 
@@ -81,13 +70,13 @@ export default function WeekCalendarPicker({ anchorEl, open, onClose, selectedWe
           <IconButton size="small" onClick={goNextMonth}><ChevronRight fontSize="small" /></IconButton>
         </Box>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
-          {DAY_LABELS.map(d => (
+        {labels && <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', mb: 0.5 }}>
+          {labels.map(d => (
             <Typography key={d} align="center" fontSize="0.68rem" color="text.secondary" fontWeight={600}>
               {d}
             </Typography>
           ))}
-        </Box>
+        </Box>}
 
         {weeks.map((week, wi) => {
           const selected = isSelectedRow(week);
@@ -109,6 +98,7 @@ export default function WeekCalendarPicker({ anchorEl, open, onClose, selectedWe
               }}
             >
               {week.days.map((d, di) => {
+                if (!d) return <span key={di} />;
                 const inMonth = d.getMonth() === viewMonth;
                 return (
                   <Typography key={di} align="center" fontSize="0.78rem"
@@ -123,7 +113,7 @@ export default function WeekCalendarPicker({ anchorEl, open, onClose, selectedWe
         })}
 
         <Typography fontSize="0.68rem" color="text.secondary" sx={{ mt: 1 }}>
-          Chaque ligne représente un cycle Jeudi → Mercredi. Cliquez sur une ligne pour sélectionner cette semaine.
+          Chaque ligne représente une semaine de rapport, du lendemain d'une date limite à la suivante (mardi 23:59 depuis le 27/10/2026). Cliquez sur une ligne pour la sélectionner.
         </Typography>
       </Box>
     </Popover>

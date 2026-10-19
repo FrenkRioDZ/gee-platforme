@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const Project = require('../models/Project');
 const WeeklyReport = require('../models/WeeklyReport');
-const { getWeekLabel } = require('./scheduler');
+const { getWeekLabel, getWeekStart } = require('./scheduler');
 
 // "07/10/2026 14:32" in Algeria time, whatever the server's timezone
 const fmtDateTime = (d) => new Date(d).toLocaleString('fr-DZ', {
@@ -13,7 +13,7 @@ const fmtDate = (d) => new Date(d).toLocaleDateString('fr-DZ', {
   timeZone: 'Africa/Algiers', day: '2-digit', month: '2-digit', year: 'numeric',
 });
 
-// How long after the Wednesday deadline the report reached the GEE, e.g. "1j 4h".
+// How long after the deadline the report reached the GEE, e.g. "1j 4h".
 // The deadline is for reaching the GEE: a report the BET user submitted on time but
 // the BET admin forwarded on Thursday is late by the forwarding delay.
 const fmtLateBy = (report) => {
@@ -411,9 +411,7 @@ const buildSuiviSheet = (wb, reports, dateLabel, rows) => {
 const CONSOLIDATED_STATUSES = ['bureau_approved', 'accepted'];
 
 const resolveConsolidatedRows = (reports, weekEnd) => {
-  const weekStart = new Date(weekEnd);
-  weekStart.setDate(weekStart.getDate() - 6);
-  weekStart.setHours(0, 0, 0, 0);
+  const weekStart = getWeekStart(weekEnd);
 
   return Promise.all(reports.map(async (r) => {
     const row = { bureau: r.bureau, project: r.project, status: r.status };
@@ -433,7 +431,7 @@ const resolveConsolidatedRows = (reports, weekEnd) => {
   }));
 };
 
-// weekEnd: the Wednesday the consolidation is "arrêtée au"
+// weekEnd: the deadline day the consolidation is "arrêtée au"
 const exportWeeklyReports = async (reports, weekEnd) => {
   const workbook = new ExcelJS.Workbook();
   const dateLabel = fmtDate(weekEnd);

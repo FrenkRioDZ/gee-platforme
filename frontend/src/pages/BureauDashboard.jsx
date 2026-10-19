@@ -15,6 +15,7 @@ import Layout from '../components/layout/Layout';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import api from '../utils/api';
+import { getWeekStart } from '../utils/week';
 import { useAuth } from '../context/AuthContext';
 import DashboardGraphs from '../components/ui/DashboardGraphs';
 
@@ -62,7 +63,7 @@ export default function BureauDashboard() {
             {data?.weekEnd && (
               <>
                 {' — '}{t('dashboard.week')} : <strong>
-                  {new Date(new Date(data.weekEnd).getTime() - 6 * 86400000).toLocaleDateString('fr-DZ')}
+                  {getWeekStart(data.weekEnd).toLocaleDateString('fr-DZ')}
                   {' → '}
                   {new Date(data.weekEnd).toLocaleDateString('fr-DZ')}
                 </strong>

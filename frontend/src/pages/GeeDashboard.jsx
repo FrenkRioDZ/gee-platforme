@@ -15,6 +15,7 @@ import Layout from '../components/layout/Layout';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import api from '../utils/api';
+import { getWeekStart, prevWeekEnd, nextWeekEnd } from '../utils/week';
 import DashboardGraphs from '../components/ui/DashboardGraphs';
 
 const STATUS_BG = {
@@ -92,7 +93,7 @@ export default function GeeDashboard() {
           {data?.weekEnd && (
             <Typography variant="body2" color="text.secondary">
               {t('dashboard.week')} : <strong>
-                {new Date(new Date(data.weekEnd).getTime() - 6 * 86400000).toLocaleDateString('fr-DZ')}
+                {getWeekStart(data.weekEnd).toLocaleDateString('fr-DZ')}
                 {' → '}
                 {new Date(data.weekEnd).toLocaleDateString('fr-DZ')}
               </strong>
@@ -105,9 +106,7 @@ export default function GeeDashboard() {
             <IconButton
               size="small" color="primary"
               onClick={() => {
-                const ref = new Date(weekEnd || data?.weekEnd || Date.now());
-                ref.setDate(ref.getDate() - 7);
-                setWeekEnd(ref.toISOString());
+                setWeekEnd(prevWeekEnd(weekEnd || data?.weekEnd || Date.now()).toISOString());
               }}
             >
               <ChevronLeft />
@@ -128,9 +127,7 @@ export default function GeeDashboard() {
                 size="small" color="primary"
                 disabled={!weekEnd}
                 onClick={() => {
-                  const ref = new Date(weekEnd || data?.weekEnd || Date.now());
-                  ref.setDate(ref.getDate() + 7);
-                  setWeekEnd(ref.toISOString());
+                  setWeekEnd(nextWeekEnd(weekEnd || data?.weekEnd || Date.now()).toISOString());
                 }}
               >
                 <ChevronRight />

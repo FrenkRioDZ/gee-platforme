@@ -8,7 +8,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const WeeklyReport = require('../models/WeeklyReport');
 const Project = require('../models/Project');
-const { getWeekLabel, getWeekDeadline } = require('../utils/scheduler');
+const { getWeekLabel, getWeekDeadline, getWeekStart } = require('../utils/scheduler');
 
 const DAY = 86400000;
 const fmt = (d) => new Date(d).toLocaleDateString('fr-DZ', { timeZone: 'Africa/Algiers' });
@@ -44,7 +44,7 @@ const ids = args.filter(a => a !== '--apply');
     }
 
     const newWeekEnd = getWeekDeadline(new Date(report.weekEnd.getTime() - 7 * DAY));
-    const newWeekStart = new Date(newWeekEnd.getTime() - 6 * DAY);
+    const newWeekStart = getWeekStart(newWeekEnd);
     const newWeekLabel = getWeekLabel(project.dateODS, newWeekEnd);
 
     // Safety: the previous week must still be free for this project
