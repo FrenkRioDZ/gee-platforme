@@ -488,6 +488,7 @@ const submitReport = async (req, res) => {
     const prev = await WeeklyReport.findOne({
       project: report.project._id,
       _id: { $ne: report._id },
+      weekEnd: { $lt: report.weekEnd }, // a late report must not be compared with a later week
       status: { $in: ['submitted', 'bureau_approved', 'accepted'] }
     }).sort({ weekEnd: -1 });
 

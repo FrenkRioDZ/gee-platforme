@@ -5,8 +5,8 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | # | Issue | Status | Commit |
 |---|-------|--------|--------|
 | 1 | Plain FTP + open admin ports on the VPS (server-side, no code) | pending | — |
-| 2 | Any logged-in user could read any project's last report (`GET /reports/weekly/project/:id/last-values`) | fixed — bureau users limited to lead/participant projects | see git log |
-| 3 | Late/extension reports blocked by cumulative check against a *later* week | pending | — |
+| 2 | Any logged-in user could read any project's last report (`GET /reports/weekly/project/:id/last-values`) | fixed — bureau users limited to lead/participant projects | daf8ac9 |
+| 3 | Late/extension reports blocked by cumulative check against a *later* week | fixed — only earlier weeks are compared | see git log |
 | 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | pending | — |
 | 5 | GEE dashboard "pending" counts non-existent statuses | pending | — |
 | 6 | Bureau super admins always refused on cell management | pending | — |
