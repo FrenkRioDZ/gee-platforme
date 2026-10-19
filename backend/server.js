@@ -67,8 +67,6 @@ app.use('/api/report-canvas', reportCanvasRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'OK', platform: 'GEE Plateforme' }));
 
 // ─── Socket.io ────────────────────────────────────────────────
-const connectedUsers = new Map(); // userId -> socketId
-
 // Authenticate the handshake — the userId comes from the verified token, never from the client
 io.use((socket, next) => {
   try {
@@ -84,34 +82,19 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  const { userId } = socket.data;
-  connectedUsers.set(userId, socket.id);
-  console.log(`User ${userId} connected via socket`);
-
-  socket.on('disconnect', () => {
-    for (const [userId, socketId] of connectedUsers.entries()) {
-      if (socketId === socket.id) {
-        connectedUsers.delete(userId);
-        break;
-      }
-    }
-  });
+  // One room per user, so every open tab/device receives the events
+  socket.join(socket.data.userId);
+  console.log(`User ${socket.data.userId} connected via socket`);
 });
 
 // Helper to send real-time notification to a user
 app.set('sendNotification', (userId, notification) => {
-  const socketId = connectedUsers.get(userId.toString());
-  if (socketId) {
-    io.to(socketId).emit('notification', notification);
-  }
+  io.to(userId.toString()).emit('notification', notification);
 });
 
 // Emitter for live screen refresh
 app.set('emitToUser', (userId, eventName, payload) => {
-  const socketId = connectedUsers.get(userId.toString());
-  if (socketId) {
-    io.to(socketId).emit(eventName, payload);
-  }
+  io.to(userId.toString()).emit(eventName, payload);
 });
 
 // ─── Start ────────────────────────────────────────────────────
