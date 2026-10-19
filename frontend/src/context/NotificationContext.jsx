@@ -46,7 +46,6 @@ export const NotificationProvider = ({ children }) => {
       setUnreadCount(prev => prev + 1);
     });
     socketRef.current.on('report:updated', (payload) => {
-      console.log('[socket] report:updated received', payload);
       window.dispatchEvent(new CustomEvent('gee:report-updated', { detail: payload }));
     });
   };

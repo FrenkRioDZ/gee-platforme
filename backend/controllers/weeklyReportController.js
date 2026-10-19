@@ -22,7 +22,6 @@ const notify = async (req, recipientId, type, title, message, reportId = null, d
       sendNotification(recipientId.toString(), { type, title, message, reportId });
     }
     if (dataEvent) {
-      console.log('emitting report:updated to', recipientId);
       const emitToUser = req.app.get('emitToUser');
       if (emitToUser) emitToUser(recipientId.toString(), dataEvent.event, dataEvent.payload);
     }
@@ -405,8 +404,8 @@ const createOrUpdateDraft = async (req, res) => {
       // Clear stale approval attribution when a rejected report re-enters draft
       existing.bureauApprovedBy = undefined;
       existing.bureauApprovedAt = undefined;
-      existing.reviewedBy = undefined;
-      existing.reviewedAt = undefined;
+      existing.geeReviewedBy = undefined;
+      existing.geeReviewedAt = undefined;
       report = await existing.save();
     } else {
       report = await WeeklyReport.create({ ...reportData, createdBy: req.user._id });

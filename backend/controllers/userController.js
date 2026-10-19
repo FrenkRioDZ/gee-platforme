@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Bureau = require('../models/Bureau');
 const { sendEmail } = require('../utils/email');
+const { validatePassword } = require('./authController');
 
 // ─── HELPER:
 const guardTarget = (actor, target) => {
@@ -15,17 +16,6 @@ const guardTarget = (actor, target) => {
   if (!actor.bureau?._id || !targetBureau ||
     targetBureau.toString() !== actor.bureau._id.toString()) {
     return 'Accès refusé';
-  }
-  return null;
-};
-
-// ─── HELPER: password strength (mirrors authController)
-const validatePassword = (pwd) => {
-  if (!pwd || typeof pwd !== 'string') return 'Mot de passe requis';
-  if (pwd.length < 10) return 'Le mot de passe doit contenir au moins 10 caractères';
-  if (pwd.length > 128) return 'Mot de passe trop long (128 caractères maximum)';
-  if (!/[A-Za-z]/.test(pwd) || !/[0-9]/.test(pwd)) {
-    return 'Le mot de passe doit contenir des lettres et des chiffres';
   }
   return null;
 };

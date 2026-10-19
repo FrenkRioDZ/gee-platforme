@@ -1,5 +1,4 @@
 const ReportCanvas = require('../models/ReportCanvas');
-const WeeklyReport = require('../models/WeeklyReport');
 
 // ─── LIST ALL CANVASES ─────────────────────────────────────────
 const getCanvases = async (req, res) => {
@@ -124,12 +123,6 @@ const deleteCanvas = async (req, res) => {
     const force = req.query.force === 'true';
 
     if (!force) {
-      // Check if any active (non-accepted/rejected) reports reference this projectType
-      const activeReports = await WeeklyReport.countDocuments({
-        status: { $in: ['draft', 'submitted', 'bureau_approved'] },
-        // Match by project type indirectly — canvas is global per type
-      });
-
       // Warn if canvas is currently active
       if (canvas.isActive) {
         return res.status(400).json({

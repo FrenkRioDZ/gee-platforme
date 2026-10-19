@@ -143,7 +143,6 @@ const updateProject = async (req, res) => {
 
     fields.forEach(field => {
       if (req.body[field] !== undefined) {
-        console.log(`setting ${field}:`, req.body[field]);
         project[field] = req.body[field];
         project.markModified(field);
       }

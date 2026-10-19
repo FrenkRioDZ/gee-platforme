@@ -60,11 +60,6 @@ api.interceptors.response.use(
         || 'Trop de tentatives — réessayez plus tard';
     }
 
-    if (err.response?.status === 429) {
-      err.friendlyMessage = err.response?.data?.message
-        || 'Trop de tentatives — réessayez plus tard';
-    }
-
     return Promise.reject(err);
   }
 );
