@@ -4,7 +4,7 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 
 | # | Issue | Status | Commit |
 |---|-------|--------|--------|
-| 1 | Plain FTP + open admin ports on the VPS (server-side, no code) | pending | — |
+| 1 | Plain FTP + open admin ports on the VPS (server-side, no code) | fixed 2026-10-19 — FTP (20/21/39000-40000) closed + pure-ftpd disabled; dead rules 888/7800/8888/29152 removed; SSH 22 only from VPN 10.253.2.0/24 + provider 10.94.20.0/24; aaPanel 20387 only from VPN; deploys via SFTP | server |
 | 2 | Any logged-in user could read any project's last report (`GET /reports/weekly/project/:id/last-values`) | fixed — bureau users limited to lead/participant projects | daf8ac9 |
 | 3 | Late/extension reports blocked by cumulative check against a *later* week | fixed — only earlier weeks are compared | 12418e3 |
 | 4 | "Missing reports" notification never sent (`report_missing` not in Notification enum) | fixed — type added | 7514620 |
