@@ -16,4 +16,6 @@ Each fix is its own commit, so any one can be reverted with `git revert <hash>`.
 | 10 | Participant bureaus can't see projects they participate in | fixed — project list and detail include participant projects | e07d5ce |
 | 11 | New-report form lists projects without weekly reports (`hasWeeklyReport` vs `weekly` param) | fixed — form sends weekly=true | 297f6b5 |
 | 12 | No test for week/deadline logic | fixed — `backend/tests/week.test.js`, run with `npm test` in backend | d7db7c6 |
-| 13 | Leftover dead code / duplicates | fixed — removed duplicate 429 block, unused canvas query, debug logs; one validatePassword; clear geeReviewedBy/At on redraft | see git log |
+| 13 | Leftover dead code / duplicates | fixed — removed duplicate 429 block, unused canvas query, debug logs; one validatePassword; clear geeReviewedBy/At on redraft | 3f5d844 |
+
+**Deployed to production 2026-10-19** (archive `gee_deploy_20261019.tar.gz`, backup `/var/www/gee_backup_20261019` + `/root/mongo_backups/pre_deploy_20261019.gz`). Health check and socket.io handshake verified after restart.
