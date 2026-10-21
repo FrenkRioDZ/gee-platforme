@@ -88,11 +88,8 @@ const createProject = async (req, res) => {
       if (!cellExists) return res.status(400).json({ message: 'Cellule invalide' });
     }
 
-    const { projectCounter } = await Bureau.findByIdAndUpdate(bureau._id, { $inc: { projectCounter: 1 } }, { new: true });
-
     const project = new Project({
       name,
-      code: `${bureau.name} ${projectCounter}`,
       type,
       bureau: req.user.bureau._id,
       cell: cellId || null,
@@ -114,6 +111,7 @@ const createProject = async (req, res) => {
     }
 
     await project.save();
+    await Project.renumber(project.bureau);
 
     const populated = await Project.findById(project._id)
       .populate('bureau', 'name emailDomain')
@@ -174,6 +172,7 @@ const updateProject = async (req, res) => {
     if (req.body.cellId !== undefined) project.cell = req.body.cellId || null;
 
     await project.save();
+    if (req.body.isActive !== undefined) await Project.renumber(project.bureau);
 
     const updated = await Project.findById(project._id)
       .populate('bureau', 'name emailDomain')
@@ -193,6 +192,7 @@ const deleteProject = async (req, res) => {
 
     project.isActive = false;
     await project.save();
+    await Project.renumber(project.bureau);
 
     res.json({ message: 'Projet désactivé avec succès' });
   } catch (error) {
