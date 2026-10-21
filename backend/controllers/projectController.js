@@ -35,6 +35,7 @@ const getProjects = async (req, res) => {
 
     const projects = await Project.find(filter)
       .populate('bureau', 'name emailDomain')
+      .populate('participantBureaus', 'name')
       .populate('createdBy', 'firstName lastName')
       .populate('assignedUsers', 'firstName lastName email')
       .sort({ createdAt: -1 });
@@ -170,6 +171,12 @@ const updateProject = async (req, res) => {
     }
 
     if (req.body.cellId !== undefined) project.cell = req.body.cellId || null;
+
+    // The lead bureau is never its own participant
+    if (Array.isArray(req.body.participantBureaus)) {
+      project.participantBureaus = [...new Set(req.body.participantBureaus.map(String))]
+        .filter(id => mongoose.Types.ObjectId.isValid(id) && id !== project.bureau.toString());
+    }
 
     await project.save();
     if (req.body.isActive !== undefined) await Project.renumber(project.bureau);
