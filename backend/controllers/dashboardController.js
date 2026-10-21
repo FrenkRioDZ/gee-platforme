@@ -18,7 +18,7 @@ const geeDashboard = async (req, res) => {
     const bureaus = await Bureau.find({ isActive: true }).sort({ name: 1 });
 
     const reports = await WeeklyReport.find({ weekEnd: deadline })
-      .populate('project', 'name type siteLocation entrepriseRealisation dateODS delaisContractuel specs')
+      .populate('project', 'name code type siteLocation entrepriseRealisation dateODS delaisContractuel specs')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .populate('bureauApprovedBy', 'firstName lastName');
@@ -128,14 +128,14 @@ const bureauDashboard = async (req, res) => {
     const projects = await Project.find({ bureau: bureauId, hasWeeklyReport: true, isActive: true });
 
     const reports = await WeeklyReport.find({ bureau: bureauId, weekEnd: deadline })
-      .populate('project', 'name type siteLocation')
+      .populate('project', 'name code type siteLocation')
       .populate('submittedBy', 'firstName lastName')
       .populate('rejectionHistory.from', 'firstName lastName');
 
     const projectStatus = projects.map(project => {
       const report = reports.find(r => r.project._id.toString() === project._id.toString());
       return {
-        project: { _id: project._id, name: project.name, type: project.type, siteLocation: project.siteLocation },
+        project: { _id: project._id, name: project.name, code: project.code, type: project.type, siteLocation: project.siteLocation },
         report: report || null,
         weekLabel: getWeekLabel(project.dateODS, deadline),
         status: report ? report.status : 'non_soumis',
@@ -171,7 +171,7 @@ const exportWeekly = async (req, res) => {
       filter.bureau = req.user.bureau._id;
     }
     const found = await WeeklyReport.find(filter)
-      .populate('project', 'name type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche')
+      .populate('project', 'name code type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .populate('canvasVersion');
@@ -243,7 +243,7 @@ const graphData = async (req, res) => {
       weekEnd: { $in: selectedWeeks },
       status: 'accepted'
     })
-      .populate('project', 'name siteLocation dateODS delaisContractuel')
+      .populate('project', 'name code siteLocation dateODS delaisContractuel')
       .populate('bureau', 'name');
 
     const projectMap = {};
@@ -251,7 +251,7 @@ const graphData = async (req, res) => {
       const pid = r.project?._id?.toString();
       if (!pid) return;
       if (!projectMap[pid]) {
-        projectMap[pid] = { projectName: r.project.name, site: r.project.siteLocation, dateODS: r.project.dateODS, delaisContractuel: r.project.delaisContractuel, data: {} };
+        projectMap[pid] = { projectName: r.project.label, site: r.project.siteLocation, dateODS: r.project.dateODS, delaisContractuel: r.project.delaisContractuel, data: {} };
       }
       projectMap[pid].data[r.weekEnd.toISOString()] = {
         weekLabel: r.weekLabel,
@@ -284,7 +284,7 @@ const graphData = async (req, res) => {
       endDate.setMonth(endDate.getMonth() + p.delaisContractuel);
       const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
       return {
-        projectName: p.name,
+        projectName: p.label,
         bureau: p.bureau?.name,
         site: p.siteLocation,
         endDate,

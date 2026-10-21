@@ -14,6 +14,7 @@ import {
 import Layout from '../components/layout/Layout';
 import StatusBadge from '../components/ui/StatusBadge';
 import api from '../utils/api';
+import { projectLabel } from '../utils/project';
 import { useAuth } from '../context/AuthContext';
 import { isGEE, canSubmitReport } from '../utils/roles';
 import Modal from '../components/ui/Modal';
@@ -367,7 +368,7 @@ export default function WeeklyReports() {
                   >
                     <TableCell>
                       <Typography fontWeight={600} fontSize="0.85rem">
-                        {report.project?.name}
+                        {projectLabel(report.project)}
                       </Typography>
                       <Typography fontSize="0.72rem" color="text.secondary">
                         {report.project?.type?.replace('_', ' ')}
@@ -544,7 +545,7 @@ export default function WeeklyReports() {
                   new Date() < new Date(r.deadlineOverride.expiresAt);
                 return (
                   <TableRow key={r._id}>
-                    <TableCell>{r.project?.name}</TableCell>
+                    <TableCell>{projectLabel(r.project)}</TableCell>
                     <TableCell>{r.bureau?.name}</TableCell>
                     <TableCell>
                       {r.weekLabel}
@@ -596,7 +597,7 @@ export default function WeeklyReports() {
             <TableBody>
               {missingReports.map(m => (
                 <TableRow key={m.project._id}>
-                  <TableCell>{m.project.name}</TableCell>
+                  <TableCell>{projectLabel(m.project)}</TableCell>
                   <TableCell>{m.bureau?.name}</TableCell>
                   <TableCell>{m.weekLabel}</TableCell>
                   <TableCell align="center">

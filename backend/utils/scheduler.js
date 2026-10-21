@@ -87,7 +87,7 @@ async function sendReminders() {
         await sendEmail({ to: user.email, ...template });
 
         const title = 'Rappel — Rapport hebdomadaire';
-        const message = `Votre rapport pour le projet ${project.name} doit être soumis avant le ${deadline.toLocaleDateString('fr-DZ')}`;
+        const message = `Votre rapport pour le projet ${project.label} doit être soumis avant le ${deadline.toLocaleDateString('fr-DZ')}`;
 
         await Notification.create({
           recipient: user._id,
@@ -146,7 +146,7 @@ async function notifyMissingReports() {
       const weekLabel = getWeekLabel(project.dateODS);
       const existing = await WeeklyReport.findOne({ project: project._id, weekLabel });
       if (!existing) {
-        missing.push({ projectName: project.name, bureauName: project.bureau?.name || '—', weekLabel });
+        missing.push({ projectName: project.label, bureauName: project.bureau?.name || '—', weekLabel });
       }
     }
 

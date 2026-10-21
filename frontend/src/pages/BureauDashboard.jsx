@@ -15,6 +15,7 @@ import Layout from '../components/layout/Layout';
 import StatCard from '../components/ui/StatCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import api from '../utils/api';
+import { projectLabel } from '../utils/project';
 import { getWeekStart } from '../utils/week';
 import { useAuth } from '../context/AuthContext';
 import DashboardGraphs from '../components/ui/DashboardGraphs';
@@ -201,7 +202,7 @@ export default function BureauDashboard() {
                     >
                       <TableCell>
                         <Typography fontWeight={600} fontSize="0.85rem">
-                          {row.project.name}
+                          {projectLabel(row.project)}
                         </Typography>
                       </TableCell>
                       <TableCell>

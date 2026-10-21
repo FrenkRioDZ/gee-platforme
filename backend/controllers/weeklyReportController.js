@@ -175,7 +175,8 @@ const getReports = async (req, res) => {
     // Project name search (escaped — user text must not become a regex)
     if (req.query.search && !filter.project) {
       const escaped = String(req.query.search).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const projects = await Project.find({ name: { $regex: escaped, $options: 'i' } }).select('_id');
+      const regex = { $regex: escaped, $options: 'i' };
+      const projects = await Project.find({ $or: [{ name: regex }, { code: regex }] }).select('_id');
       filter.project = { $in: projects.map(p => p._id) };
     }
     if (req.user.role.startsWith('bureau_')) {
@@ -183,7 +184,7 @@ const getReports = async (req, res) => {
     }
     const total = await WeeklyReport.countDocuments(filter);
     const reports = await WeeklyReport.find(filter)
-      .populate('project', 'name type siteLocation')
+      .populate('project', 'name code type siteLocation')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .sort({ weekEnd: -1, createdAt: -1 })
@@ -204,7 +205,7 @@ const getReports = async (req, res) => {
 const getReport = async (req, res) => {
   try {
     const report = await WeeklyReport.findById(req.params.id)
-      .populate('project', 'name type siteLocation siteLabel entrepriseRealisation dateODS delaisContractuel montantMarche AMO BET specs')
+      .populate('project', 'name code type siteLocation siteLabel entrepriseRealisation dateODS delaisContractuel montantMarche AMO BET specs')
       .populate('bureau', 'name emailDomain')
       .populate('submittedBy', 'firstName lastName email')
       .populate('bureauApprovedBy', 'firstName lastName email')
@@ -521,11 +522,11 @@ const submitReport = async (req, res) => {
 
     for (const admin of admins) {
       await notify(req, admin._id, 'report_submitted', 'Nouveau rapport soumis',
-        `${req.user.firstName} ${req.user.lastName} a soumis le rapport hebdomadaire du projet ${report.project.name}`,
+        `${req.user.firstName} ${req.user.lastName} a soumis le rapport hebdomadaire du projet ${report.project.label}`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
-      const tpl = emailTemplates.reportSubmitted(admin.firstName, report.project.name, report.weekLabel);
+      const tpl = emailTemplates.reportSubmitted(admin.firstName, report.project.label, report.weekLabel);
       sendEmail({ to: admin.email, ...tpl }).catch(() => { });
     }
 
@@ -579,11 +580,11 @@ const bureauAdminSubmit = async (req, res) => {
 
     for (const admin of geeAdmins) {
       await notify(req, admin._id, 'report_submitted', 'Rapport à réviser',
-        `Le bureau ${bureau?.name || ''} a soumis le rapport du projet ${report.project.name} pour révision`,
+        `Le bureau ${bureau?.name || ''} a soumis le rapport du projet ${report.project.label} pour révision`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
-      const tpl = emailTemplates.reportSubmitted(admin.firstName, report.project.name, report.weekLabel);
+      const tpl = emailTemplates.reportSubmitted(admin.firstName, report.project.label, report.weekLabel);
       sendEmail({ to: admin.email, ...tpl }).catch(() => { });
     }
 
@@ -625,13 +626,13 @@ const bureauRejectReport = async (req, res) => {
     if (report.submittedBy) {
       await notify(req, report.submittedBy._id, 'report_rejected',
         'Rapport renvoyé pour correction',
-        `Votre rapport pour le projet ${report.project.name} a été renvoyé par l'admin technique. Veuillez corriger et resoumettre.`,
+        `Votre rapport pour le projet ${report.project.label} a été renvoyé par l'admin technique. Veuillez corriger et resoumettre.`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
       const tpl = emailTemplates.reportRejected(
         report.submittedBy.firstName,
-        report.project.name,
+        report.project.label,
         observation
       );
       sendEmail({ to: report.submittedBy.email, ...tpl }).catch(() => { });
@@ -671,13 +672,13 @@ const acceptReport = async (req, res) => {
 
     if (report.submittedBy) {
       await notify(req, report.submittedBy._id, 'report_accepted', 'Rapport accepté',
-        `Votre rapport hebdomadaire pour le projet ${report.project.name} (${report.weekLabel}) a été accepté`,
+        `Votre rapport hebdomadaire pour le projet ${report.project.label} (${report.weekLabel}) a été accepté`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
       const tpl = emailTemplates.reportAccepted(
         report.submittedBy.firstName,
-        report.project.name,
+        report.project.label,
         report.weekLabel
       );
       sendEmail({ to: report.submittedBy.email, ...tpl }).catch(() => { });
@@ -727,13 +728,13 @@ const rejectReport = async (req, res) => {
     if (report.bureauApprovedBy) {
       await notify(req, report.bureauApprovedBy._id, 'report_rejected',
         'Rapport rejeté',
-        `Le rapport du projet ${report.project.name} a été rejeté avec une observation`,
+        `Le rapport du projet ${report.project.label} a été rejeté avec une observation`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
       const tpl = emailTemplates.reportRejected(
         report.bureauApprovedBy.firstName,
-        report.project.name,
+        report.project.label,
         observation
       );
       sendEmail({ to: report.bureauApprovedBy.email, ...tpl }).catch(() => { });
@@ -742,13 +743,13 @@ const rejectReport = async (req, res) => {
     if (report.submittedBy) {
       await notify(req, report.submittedBy._id, 'report_rejected',
         'Rapport rejeté',
-        `Votre rapport pour le projet ${report.project.name} a été rejeté. Veuillez corriger et resoumettre.`,
+        `Votre rapport pour le projet ${report.project.label} a été rejeté. Veuillez corriger et resoumettre.`,
         report._id,
         { event: 'report:updated', payload: { reportId: report._id, status: report.status } }
       );
       const tpl = emailTemplates.reportRejected(
         report.submittedBy.firstName,
-        report.project.name,
+        report.project.label,
         observation
       );
       sendEmail({ to: report.submittedBy.email, ...tpl }).catch(() => { });
@@ -771,7 +772,7 @@ const getCurrentWeekStatus = async (req, res) => {
 
     const projects = await Project.find(projectFilter)
       .populate('bureau', 'name')
-      .select('name type bureau dateODS');
+      .select('name code type bureau dateODS');
 
     const statuses = await Promise.all(projects.map(async (project) => {
       const weekLabel = getWeekLabel(project.dateODS);
@@ -779,7 +780,7 @@ const getCurrentWeekStatus = async (req, res) => {
         .select('status isLate weekLabel submittedAt bureau');
 
       return {
-        project: { _id: project._id, name: project.name, type: project.type },
+        project: { _id: project._id, name: project.name, code: project.code, type: project.type },
         bureau: project.bureau,
         weekLabel,
         status: report?.status || 'non_soumis',
@@ -833,7 +834,7 @@ const exportConsolidated = async (req, res) => {
     const found = await WeeklyReport.find({
       weekEnd: { $gte: dayStart, $lte: dayEnd }
     })
-      .populate('project', 'name type siteLocation siteLabel entrepriseRealisation dateODS delaisContractuel montantMarche AMO')
+      .populate('project', 'name code type siteLocation siteLabel entrepriseRealisation dateODS delaisContractuel montantMarche AMO')
       .populate('bureau', 'name')
       .populate('submittedBy', 'firstName lastName')
       .populate('bureauApprovedBy', 'firstName lastName')
@@ -889,7 +890,7 @@ const grantDeadlineOverride = async (req, res) => {
     for (const admin of admins) {
       await notify(req, admin._id, 'report_submitted',
         'Extension de délai accordée',
-        `Une extension de 24h a été accordée pour le rapport du projet ${report.project.name} (${report.weekLabel})`,
+        `Une extension de 24h a été accordée pour le rapport du projet ${report.project.label} (${report.weekLabel})`,
         report._id
       );
     }
@@ -920,7 +921,7 @@ const getMissingReports = async (req, res) => {
     const missing = all
       .filter(r => r.status === 'missing')
       .map(r => ({
-        project: { _id: r.project._id, name: r.project.name },
+        project: { _id: r.project._id, name: r.project.name, code: r.project.code },
         bureau: r.bureau,
         weekLabel: r.weekLabel,
       }));
@@ -978,7 +979,7 @@ const grantMissingOverride = async (req, res) => {
     for (const admin of admins) {
       await notify(req, admin._id, 'report_submitted',
         'Extension de délai accordée',
-        `Une extension de 24h a été accordée pour le rapport non soumis du projet ${project.name} (${weekLabel})`,
+        `Une extension de 24h a été accordée pour le rapport non soumis du projet ${project.label} (${weekLabel})`,
         report._id
       );
     }

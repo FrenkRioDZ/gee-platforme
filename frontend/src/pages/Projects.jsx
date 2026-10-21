@@ -11,6 +11,7 @@ import { Add, Edit, Refresh, FilterList, FolderSpecial, Delete } from '@mui/icon
 import Layout from '../components/layout/Layout';
 import Modal from '../components/ui/Modal';
 import api from '../utils/api';
+import { projectLabel } from '../utils/project';
 import { useAuth } from '../context/AuthContext';
 import { canManageProjects, isGEE } from '../utils/roles';
 
@@ -303,7 +304,7 @@ export default function Projects() {
                       opacity: project.isActive ? 1 : 0.5
                     }}>
                     <TableCell>
-                      <Typography fontWeight={600} fontSize="0.85rem">{project.name}</Typography>
+                      <Typography fontWeight={600} fontSize="0.85rem">{projectLabel(project)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Chip label={typeStyle.label} size="small"

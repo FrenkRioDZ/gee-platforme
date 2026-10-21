@@ -15,6 +15,7 @@ import ReportTimeline from '../components/reports/ReportTimeline';
 import ObservationModal from '../components/reports/ObservationModal';
 import WeeklyReportForm from '../components/reports/WeeklyReportForm';
 import api from '../utils/api';
+import { projectLabel } from '../utils/project';
 import { useAuth } from '../context/AuthContext';
 import {
   canReviewReport, canBureauForwardReport,
@@ -211,7 +212,7 @@ export default function ReportDetail() {
                           p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2,
                           cursor: 'pointer', '&:hover': { borderColor: 'primary.main', background: 'rgba(13,59,110,0.03)' }
                         }}>
-                        <Typography fontWeight={600}>{p.name}</Typography>
+                        <Typography fontWeight={600}>{projectLabel(p)}</Typography>
                         <Typography fontSize="0.8rem" color="text.secondary">{p.siteLocation} — {p.entrepriseRealisation}</Typography>
                       </Box>
                     ))}
@@ -334,7 +335,7 @@ export default function ReportDetail() {
                 <Typography variant="h5" sx={{
                   fontFamily: '"Playfair Display", serif', color: 'primary.main'
                 }}>
-                  {p.name}
+                  {projectLabel(p)}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
                   <Chip label={report.weekLabel} size="small" color="primary" variant="outlined" />
@@ -490,7 +491,7 @@ export default function ReportDetail() {
         open={rejectModal}
         onClose={() => setRejectModal(false)}
         onConfirm={handleReject}
-        projectName={p.name}
+        projectName={projectLabel(p)}
         loading={actionLoading}
       />
 
@@ -499,7 +500,7 @@ export default function ReportDetail() {
         open={bureauRejectModal}
         onClose={() => setBureauRejectModal(false)}
         onConfirm={handleBureauReject}
-        projectName={p.name}
+        projectName={projectLabel(p)}
         loading={actionLoading}
       />
     </Layout>

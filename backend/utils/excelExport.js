@@ -43,7 +43,7 @@ const addMissingReports = async (reports, weekEnd, bureauId) => {
   if (bureauId) filter.$or = [{ bureau: bureauId }, { participantBureaus: bureauId }];
 
   const projects = await Project.find(filter)
-    .select('name type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche AMO bureau')
+    .select('name code type siteLocation entrepriseRealisation dateODS delaisContractuel montantMarche AMO bureau')
     .populate('bureau', 'name');
 
   const reported = new Set(reports.map(r => String(r.project?._id || r.project)));
@@ -60,6 +60,7 @@ const addMissingReports = async (reports, weekEnd, bureauId) => {
 
   return [...reports, ...missing].sort((a, b) =>
     (a.bureau?.name || '').localeCompare(b.bureau?.name || '') ||
+    (a.project?.code || '').localeCompare(b.project?.code || '', 'fr', { numeric: true }) ||
     (a.project?.name || '').localeCompare(b.project?.name || ''));
 };
 
@@ -207,14 +208,17 @@ const writeTitleBlock = (ws, lastCol, titleRow, title, ministryLastCol) => {
   ws.getRow(titleRow + 1).height = 17.25;
 };
 
-// Data rows; the Filiale cell is merged over consecutive rows of the same bureau
+// Filiale cell shows the project code ("SATO 1"); projects without one fall back to the bureau
+const filialeOf = (report) => report.project?.code || report.bureau?.name || '—';
+
+// Data rows; the Filiale cell is merged over consecutive rows with the same value
 const writeDataRows = (ws, columns, reports, firstRow, height) => {
   reports.forEach((report, i) => {
     const row = ws.getRow(firstRow + i);
     row.height = height;
     columns.forEach((col, c) => {
       const cell = row.getCell(c + 1);
-      cell.value = c === 0 ? (report.bureau?.name || '—') : (col.get(report) ?? null);
+      cell.value = c === 0 ? filialeOf(report) : (col.get(report) ?? null);
       cell.font = { name: 'Calibri', size: c === 0 ? 18 : 22, bold: c === 0 };
       cell.alignment = { ...CENTER, horizontal: col.align || 'center' };
       cell.border = BORDER;
@@ -224,7 +228,7 @@ const writeDataRows = (ws, columns, reports, firstRow, height) => {
 
   let start = 0;
   for (let i = 1; i <= reports.length; i++) {
-    const same = i < reports.length && reports[i].bureau?.name === reports[start].bureau?.name;
+    const same = i < reports.length && filialeOf(reports[i]) === filialeOf(reports[start]);
     if (!same) {
       if (i - 1 > start) ws.mergeCells(`A${firstRow + start}:A${firstRow + i - 1}`);
       start = i;
@@ -349,7 +353,7 @@ const buildAvancementSheet = (wb, reports, dateLabel) => {
 const buildSuiviSheet = (wb, reports, dateLabel, rows) => {
   const ws = wb.addWorksheet('Suivi des soumissions');
   const cols = [
-    { header: 'Filiale', width: 18, get: r => r.bureau?.name || '—' },
+    { header: 'Filiale', width: 18, get: filialeOf },
     { header: 'Projet', width: 30, get: r => r.project?.name || '—' },
     { header: 'Semaine', width: 14, get: r => r.weekLabel || '—' },
     { header: 'Statut', width: 16, get: r => STATUS_LABELS[r.status] || r.status },

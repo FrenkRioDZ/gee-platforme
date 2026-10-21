@@ -25,6 +25,8 @@ const bureauSchema = new mongoose.Schema({
     lowercase: true
   },
   cells: [cellSchema],
+  // Last project number handed out ("SATO 3"); only grows, so numbers are never reused
+  projectCounter: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 

@@ -4,6 +4,8 @@ const PROJECT_TYPES = ['Industriel', 'Batiment', 'Equipement_Public'];
 
 const projectSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
+  // Lead bureau + number, e.g. "SATO 1" — set once at creation, never edited
+  code: { type: String, unique: true, sparse: true },
   type: { type: String, enum: PROJECT_TYPES, required: true },
 
   bureau: { type: mongoose.Schema.Types.ObjectId, ref: 'Bureau', required: true },
@@ -42,6 +44,11 @@ projectSchema.pre('save', function (next) {
     this.siteLabel = this.type === 'Industriel' ? "Site d'implantation du Silo" : "Site du Projet";
   }
   next();
+});
+
+// "SATO 1 · SILO BERRICHE OEB" — the name users and the client see
+projectSchema.virtual('label').get(function () {
+  return this.code ? `${this.code} · ${this.name}` : this.name;
 });
 
 module.exports = mongoose.models['Project'] || mongoose.model('Project', projectSchema);

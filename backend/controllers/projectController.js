@@ -88,8 +88,11 @@ const createProject = async (req, res) => {
       if (!cellExists) return res.status(400).json({ message: 'Cellule invalide' });
     }
 
+    const { projectCounter } = await Bureau.findByIdAndUpdate(bureau._id, { $inc: { projectCounter: 1 } }, { new: true });
+
     const project = new Project({
       name,
+      code: `${bureau.name} ${projectCounter}`,
       type,
       bureau: req.user.bureau._id,
       cell: cellId || null,

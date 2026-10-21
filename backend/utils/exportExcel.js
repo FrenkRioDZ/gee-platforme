@@ -77,7 +77,7 @@ const exportReportToExcel = async (report) => {
   addTitle(s1, 'RAPPORT HEBDOMADAIRE — INFORMATIONS PROJET');
 
   addHeader(s1, 'Informations Projet');
-  addRow(s1, 'Projet', p.name);
+  addRow(s1, 'Projet', p.label);
   addRow(s1, 'Bureau', report.bureau?.name);
   addRow(s1, p.siteLabel || 'Site du projet', p.siteLocation);
   addRow(s1, 'Semaine', report.weekLabel);
