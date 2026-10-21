@@ -5,9 +5,9 @@ import {
   TableCell, TableContainer, TableHead, TableRow,
   TextField, Select, MenuItem, FormControl, InputLabel,
   CircularProgress, Alert, IconButton, Tooltip, Chip,
-  Grid, Switch, FormControlLabel, Divider
+  Grid, Switch, FormControlLabel, Divider, InputAdornment
 } from '@mui/material';
-import { Add, Edit, Refresh, FilterList, FolderSpecial, Delete } from '@mui/icons-material';
+import { Add, Edit, Refresh, FilterList, FolderSpecial, Delete, Search } from '@mui/icons-material';
 import Layout from '../components/layout/Layout';
 import Modal from '../components/ui/Modal';
 import api from '../utils/api';
@@ -20,6 +20,11 @@ const PROJECT_TYPES = [
   { value: 'Batiment', label: 'Bâtiments', color: '#2E7D32' },
   { value: 'Equipement_Public', label: 'Équipement Public', color: '#E65100' },
 ];
+
+const DEFAULT_FILTERS = { type: '', active: 'true', search: '', bureau: '', weekly: '' };
+
+// Accent- and case-insensitive, so "setif" finds "SÉTIF"
+const fold = (s) => String(s ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 const EMPTY_FORM = {
   name: '', type: 'Industriel', siteLocation: '',
@@ -56,7 +61,7 @@ export default function Projects() {
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [filters, setFilters] = useState({ type: '', active: 'true' });
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [bureaus, setBureaus] = useState([]);
   const [filialeUsers, setFilialeUsers] = useState([]);
 
@@ -71,7 +76,8 @@ export default function Projects() {
     } catch { }
   };
 
-  useEffect(() => { fetchProjects(); }, [filters]);
+  // type/active are filtered by the API; search, filiale and weekly locally on the loaded list
+  useEffect(() => { fetchProjects(); }, [filters.type, filters.active]);
 
   useEffect(() => { if (!gee) fetchCells(); }, []);
 
@@ -207,6 +213,18 @@ export default function Projects() {
     }
   };
 
+  const filialeOptions = [...new Set(projects.map(p => p.bureau?.name).filter(Boolean))].sort();
+  const words = fold(filters.search).split(/\s+/).filter(Boolean);
+  const shown = projects
+    .filter(p => !filters.bureau || p.bureau?.name === filters.bureau)
+    .filter(p => !filters.weekly || String(!!p.hasWeeklyReport) === filters.weekly)
+    .filter(p => {
+      const text = fold([p.code, p.name, p.siteLocation, p.entrepriseRealisation, p.bureau?.name,
+        ...(p.participantBureaus || []).map(b => b.name)].join(' '));
+      return words.every(w => text.includes(w));
+    })
+    .sort((a, b) => (a.code || a.bureau?.name || '').localeCompare(b.code || b.bureau?.name || '', 'fr', { numeric: true }));
+
   const getTypeStyle = type => PROJECT_TYPES.find(t => t.value === type) || PROJECT_TYPES[0];
 
   return (
@@ -237,7 +255,22 @@ export default function Projects() {
           <FilterList fontSize="small" color="primary" />
           <Typography fontWeight={600} fontSize="0.875rem" color="primary.main">Filtres</Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <TextField size="small" sx={{ minWidth: 280, flex: 1 }}
+            placeholder="Rechercher : code, nom, site, entreprise, filiale…"
+            value={filters.search}
+            onChange={e => setFilters(p => ({ ...p, search: e.target.value }))}
+            InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }} />
+          {gee && (
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Filiale</InputLabel>
+              <Select value={filters.bureau} label="Filiale"
+                onChange={e => setFilters(p => ({ ...p, bureau: e.target.value }))}>
+                <MenuItem value="">Toutes les filiales</MenuItem>
+                {filialeOptions.map(name => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+              </Select>
+            </FormControl>
+          )}
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Type</InputLabel>
             <Select name="type" value={filters.type} label="Type"
@@ -257,10 +290,21 @@ export default function Projects() {
               <MenuItem value="">Tous</MenuItem>
             </Select>
           </FormControl>
-          <Button size="small" variant="outlined"
-            onClick={() => setFilters({ type: '', active: 'true' })}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Rapport hebdo</InputLabel>
+            <Select value={filters.weekly} label="Rapport hebdo"
+              onChange={e => setFilters(p => ({ ...p, weekly: e.target.value }))}>
+              <MenuItem value="">Tous</MenuItem>
+              <MenuItem value="true">Oui</MenuItem>
+              <MenuItem value="false">Non</MenuItem>
+            </Select>
+          </FormControl>
+          <Button size="small" variant="outlined" onClick={() => setFilters(DEFAULT_FILTERS)}>
             Réinitialiser
           </Button>
+          <Typography fontSize="0.8rem" color="text.secondary" sx={{ ml: 'auto' }}>
+            {loading ? '' : `${shown.length} projet${shown.length > 1 ? 's' : ''}${shown.length !== projects.length ? ` sur ${projects.length}` : ''}`}
+          </Typography>
         </Box>
       </Card>
 
@@ -288,14 +332,14 @@ export default function Projects() {
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
-              ) : projects.length === 0 ? (
+              ) : shown.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: 'text.secondary' }}>
                     <FolderSpecial sx={{ fontSize: 40, mb: 1, opacity: 0.3, display: 'block', mx: 'auto' }} />
-                    Aucun projet
+                    {projects.length ? 'Aucun projet ne correspond aux filtres' : 'Aucun projet'}
                   </TableCell>
                 </TableRow>
-              ) : projects.map(project => {
+              ) : shown.map(project => {
                 const typeStyle = getTypeStyle(project.type);
                 return (
                   <TableRow key={project._id}
